@@ -139,11 +139,6 @@ HCURSOR CAgoraQuickStartDlg::OnQueryDragIcon() {
   return static_cast<HCURSOR>(m_hIcon);
 }
 
-/**
- * @brief
- * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#initialize-the-engine
- *
- */
 void CAgoraQuickStartDlg::initializeAgoraEngine() {
   // Create IRtcEngine object
   m_rtcEngine = createAgoraRtcEngine();
@@ -166,13 +161,6 @@ void CAgoraQuickStartDlg::initializeAgoraEngine() {
   }
 }
 
-/**
- * @brief
- * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#join-a-channel
- *
- * @param token
- * @param channelName
- */
 void CAgoraQuickStartDlg::joinChannel(const char* token,
                                       const char* channelName) {
   ChannelMediaOptions options;
@@ -233,11 +221,6 @@ LRESULT CAgoraQuickStartDlg::OnEIDUserOffline(WPARAM wParam, LPARAM lParam) {
   return 0;
 }
 
-/**
- * @brief
- * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#display-the-local-video
- *
- */
 void CAgoraQuickStartDlg::setupLocalVideo() {
   // Set local video display properties
   VideoCanvas canvas;

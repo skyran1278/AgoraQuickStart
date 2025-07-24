@@ -45,7 +45,20 @@ class CAgoraQuickStartDlg : public CDialog {
   CEdit m_staRemote;
   CEdit m_staLocal;
 
+  /**
+   * @brief
+   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#initialize-the-engine
+   *
+   */
   void initializeAgoraEngine();
+
+  /**
+   * @brief
+   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#join-a-channel
+   *
+   * @param token
+   * @param channelName
+   */
   void joinChannel(const char *token, const char *channelName);
 
   // Handle callback events such as user joining/user leaving
