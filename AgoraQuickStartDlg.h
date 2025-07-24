@@ -39,8 +39,11 @@ class CAgoraQuickStartDlg : public CDialog {
   // Declare the required variables
   bool m_initialize = false;
   IRtcEngine *m_rtcEngine = nullptr;  // RTC engine instance
+
   bool m_remoteRender = false;
+
   CEdit m_staRemote;
+  CEdit m_staLocal;
 
   void initializeAgoraEngine();
   void joinChannel(const char *token, const char *channelName);
@@ -49,4 +52,11 @@ class CAgoraQuickStartDlg : public CDialog {
   LRESULT OnEIDJoinChannelSuccess(WPARAM wParam, LPARAM lParam);
   LRESULT OnEIDUserJoined(WPARAM wParam, LPARAM lParam);
   LRESULT OnEIDUserOffline(WPARAM wParam, LPARAM lParam);
+
+  /**
+   * @brief
+   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#display-the-local-video
+   *
+   */
+  void setupLocalVideo();
 };

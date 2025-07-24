@@ -232,3 +232,22 @@ LRESULT CAgoraQuickStartDlg::OnEIDUserOffline(WPARAM wParam, LPARAM lParam) {
   m_remoteRender = false;
   return 0;
 }
+
+/**
+ * @brief
+ * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#display-the-local-video
+ *
+ */
+void CAgoraQuickStartDlg::setupLocalVideo() {
+  // Set local video display properties
+  VideoCanvas canvas;
+  // Set video to be scaled proportionally
+  canvas.renderMode = RENDER_MODE_TYPE::RENDER_MODE_HIDDEN;
+  // User ID
+  canvas.uid = 0;
+  // Video display window
+  canvas.view = m_staLocal.GetSafeHwnd();
+  m_rtcEngine->setupLocalVideo(canvas);
+  // Preview the local video
+  m_rtcEngine->startPreview();
+}
