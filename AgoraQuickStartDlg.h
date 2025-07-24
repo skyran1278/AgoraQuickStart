@@ -4,6 +4,10 @@
 
 #pragma once
 
+#include "IAgoraRtcEngine.h"
+
+using namespace agora::rtc;
+
 // CAgoraQuickStartDlg dialog
 class CAgoraQuickStartDlg : public CDialog {
   // Construction
@@ -28,4 +32,11 @@ class CAgoraQuickStartDlg : public CDialog {
   afx_msg void OnPaint();
   afx_msg HCURSOR OnQueryDragIcon();
   DECLARE_MESSAGE_MAP()
+
+ private:
+  // Declare the required variables
+  bool m_initialize = false;
+  IRtcEngine *m_rtcEngine = nullptr;  // RTC engine instance
+
+  void initializeAgoraEngine();
 };

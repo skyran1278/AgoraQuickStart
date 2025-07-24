@@ -61,6 +61,9 @@ ON_WM_PAINT()
 ON_WM_QUERYDRAGICON()
 END_MESSAGE_MAP()
 
+// Insert your project's App ID obtained from the Agora Console
+#define APP_ID "71aa4763f35149369959d89afe2e504c"
+
 // CAgoraQuickStartDlg message handlers
 
 BOOL CAgoraQuickStartDlg::OnInitDialog() {
@@ -134,4 +137,31 @@ void CAgoraQuickStartDlg::OnPaint() {
 //  the minimized window.
 HCURSOR CAgoraQuickStartDlg::OnQueryDragIcon() {
   return static_cast<HCURSOR>(m_hIcon);
+}
+
+/**
+ * @brief
+ * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#initialize-the-engine
+ *
+ */
+void CAgoraQuickStartDlg::initializeAgoraEngine() {
+  // Create IRtcEngine object
+  m_rtcEngine = createAgoraRtcEngine();
+  // Create IRtcEngine context object
+  RtcEngineContext context;
+  // Input your App ID. You can obtain your project's App ID from the Agora
+  // Console
+  context.appId = APP_ID;
+  // Add event handler for callbacks and events
+  //   context.eventHandler = &m_eventHandler;
+  // Initialize
+  int ret = m_rtcEngine->initialize(context);
+  m_initialize = (ret == 0);
+
+  if (m_initialize) {
+    // Enable the video module
+    m_rtcEngine->enableVideo();
+  } else {
+    AfxMessageBox(_T("Failed to initialize Agora RTC engine"));
+  }
 }
