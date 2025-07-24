@@ -16,6 +16,8 @@ class CAgoraQuickStartDlg : public CDialog {
  public:
   CAgoraQuickStartDlg(CWnd *pParent = nullptr);  // standard constructor
 
+  virtual ~CAgoraQuickStartDlg();
+
 // Dialog Data
 #ifdef AFX_DESIGN_TIME
   enum { IDD = IDD_AGORAQUICKSTART_DIALOG };

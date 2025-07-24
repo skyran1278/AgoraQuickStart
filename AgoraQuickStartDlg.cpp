@@ -51,6 +51,14 @@ CAgoraQuickStartDlg::CAgoraQuickStartDlg(CWnd* pParent /*=nullptr*/)
   m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
+CAgoraQuickStartDlg::~CAgoraQuickStartDlg() {
+  if (m_rtcEngine) {
+    // https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#release-resources
+    m_rtcEngine->release(true);
+    m_rtcEngine = NULL;
+  }
+}
+
 void CAgoraQuickStartDlg::DoDataExchange(CDataExchange* pDX) {
   CDialog::DoDataExchange(pDX);
 }
