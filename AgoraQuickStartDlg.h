@@ -59,4 +59,12 @@ class CAgoraQuickStartDlg : public CDialog {
    *
    */
   void setupLocalVideo();
+
+  /**
+   * @brief
+   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#display-remote-video
+   *
+   * @param remoteUid
+   */
+  void setupRemoteVideo(uid_t remoteUid);
 };

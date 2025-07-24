@@ -251,3 +251,17 @@ void CAgoraQuickStartDlg::setupLocalVideo() {
   // Preview the local video
   m_rtcEngine->startPreview();
 }
+
+void CAgoraQuickStartDlg::setupRemoteVideo(uid_t remoteUid) {
+  // Set remote video display properties
+  VideoCanvas canvas;
+  // Set video size to be proportionally scaled
+  canvas.renderMode = RENDER_MODE_TYPE::RENDER_MODE_HIDDEN;
+  // Remote user ID
+  canvas.uid = remoteUid;
+  // You can only choose to set either view or surfaceTexture. If both are set,
+  // only the settings in view take effect.
+  canvas.view = m_staRemote.GetSafeHwnd();
+  m_rtcEngine->setupRemoteVideo(canvas);
+  m_remoteRender = true;
+}
