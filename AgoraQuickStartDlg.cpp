@@ -118,6 +118,11 @@ BOOL CAgoraQuickStartDlg::OnInitDialog() {
   SetIcon(m_hIcon, FALSE);  // Set small icon
 
   // TODO: Add extra initialization here
+  // Set the message receiver
+  m_eventHandler.SetMsgReceiver(m_hWnd);
+
+  // Initialize Agora engine
+  initializeAgoraEngine();
 
   return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -173,7 +178,7 @@ void CAgoraQuickStartDlg::initializeAgoraEngine() {
   // Console
   context.appId = APP_ID;
   // Add event handler for callbacks and events
-  //   context.eventHandler = &m_eventHandler;
+  context.eventHandler = &m_eventHandler;
   // Initialize
   int ret = m_rtcEngine->initialize(context);
   m_initialize = (ret == 0);

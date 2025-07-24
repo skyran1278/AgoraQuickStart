@@ -54,6 +54,7 @@ class CAgoraQuickStartDlg : public CDialog {
   // Declare the required variables
   bool m_initialize = false;
   IRtcEngine *m_rtcEngine = nullptr;  // RTC engine instance
+  CAgoraQuickStartRtcEngineEventHandler m_eventHandler;
 
   bool m_remoteRender = false;
 
