@@ -248,3 +248,17 @@ void CAgoraQuickStartDlg::setupRemoteVideo(uid_t remoteUid) {
   m_rtcEngine->setupRemoteVideo(canvas);
   m_remoteRender = true;
 }
+
+void CAgoraQuickStartDlg::leaveChannel() {
+  if (m_rtcEngine) {
+    // Stop local video preview
+    m_rtcEngine->stopPreview();
+    // Leave the channel
+    m_rtcEngine->leaveChannel();
+    // Clear local view
+    VideoCanvas canvas;
+    canvas.uid = 0;
+    m_rtcEngine->setupLocalVideo(canvas);
+    m_remoteRender = false;
+  }
+}
