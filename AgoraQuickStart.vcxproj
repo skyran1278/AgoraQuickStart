@@ -217,6 +217,7 @@
   <ItemGroup>
     <ClInclude Include="AgoraQuickStart.h" />
     <ClInclude Include="AgoraQuickStartDlg.h" />
+    <ClInclude Include="CAgoraQuickStartRtcEngineEventHandler.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />

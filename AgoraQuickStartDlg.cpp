@@ -195,3 +195,40 @@ void CAgoraQuickStartDlg::joinChannel(const char* token,
   // Join the channel using the token and channel name (both are const char*)
   m_rtcEngine->joinChannel(token, channelName, 0, options);
 }
+
+LRESULT CAgoraQuickStartDlg::OnEIDJoinChannelSuccess(WPARAM wParam,
+                                                     LPARAM lParam) {
+  // Join channel success callback
+  uid_t localUid = wParam;
+  return 0;
+}
+
+LRESULT CAgoraQuickStartDlg::OnEIDUserJoined(WPARAM wParam, LPARAM lParam) {
+  // Remote user joined callback
+  uid_t remoteUid = wParam;
+  if (m_remoteRender) {
+    return 0;
+  }
+  // Render remote view
+  VideoCanvas canvas;
+  canvas.renderMode = RENDER_MODE_TYPE::RENDER_MODE_HIDDEN;
+  canvas.uid = remoteUid;
+  canvas.view = m_staRemote.GetSafeHwnd();
+  m_rtcEngine->setupRemoteVideo(canvas);
+  m_remoteRender = true;
+  return 0;
+}
+
+LRESULT CAgoraQuickStartDlg::OnEIDUserOffline(WPARAM wParam, LPARAM lParam) {
+  // Remote user left callback
+  uid_t remoteUid = wParam;
+  if (!m_remoteRender) {
+    return 0;
+  }
+  // Clear remote view
+  VideoCanvas canvas;
+  canvas.uid = remoteUid;
+  m_rtcEngine->setupRemoteVideo(canvas);
+  m_remoteRender = false;
+  return 0;
+}

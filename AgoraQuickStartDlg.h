@@ -4,9 +4,11 @@
 
 #pragma once
 
+#include "CAgoraQuickStartRtcEngineEventHandler.h"
 #include "IAgoraRtcEngine.h"
 
 using namespace agora::rtc;
+using namespace agora::media::base;
 
 // CAgoraQuickStartDlg dialog
 class CAgoraQuickStartDlg : public CDialog {
@@ -37,7 +39,14 @@ class CAgoraQuickStartDlg : public CDialog {
   // Declare the required variables
   bool m_initialize = false;
   IRtcEngine *m_rtcEngine = nullptr;  // RTC engine instance
+  bool m_remoteRender = false;
+  CEdit m_staRemote;
 
   void initializeAgoraEngine();
   void joinChannel(const char *token, const char *channelName);
+
+  // Handle callback events such as user joining/user leaving
+  LRESULT OnEIDJoinChannelSuccess(WPARAM wParam, LPARAM lParam);
+  LRESULT OnEIDUserJoined(WPARAM wParam, LPARAM lParam);
+  LRESULT OnEIDUserOffline(WPARAM wParam, LPARAM lParam);
 };
