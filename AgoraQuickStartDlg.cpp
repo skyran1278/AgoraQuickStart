@@ -61,16 +61,33 @@ CAgoraQuickStartDlg::~CAgoraQuickStartDlg() {
 
 void CAgoraQuickStartDlg::DoDataExchange(CDataExchange* pDX) {
   CDialog::DoDataExchange(pDX);
+  DDX_Control(pDX, IDC_EDIT_CHANNEL, m_edtChannelName);
+  DDX_Control(pDX, IDC_STATIC_REMOTE, m_staRemote);
+  DDX_Control(pDX, IDC_STATIC_LOCAL, m_staLocal);
 }
 
 BEGIN_MESSAGE_MAP(CAgoraQuickStartDlg, CDialog)
 ON_WM_SYSCOMMAND()
 ON_WM_PAINT()
 ON_WM_QUERYDRAGICON()
+
+ON_BN_CLICKED(ID_BTN_JOIN, &CAgoraQuickStartDlg::OnBnClickedBtnJoin)
+ON_BN_CLICKED(ID_BTN_LEAVE, &CAgoraQuickStartDlg::OnBnClickedBtnLeave)
+ON_MESSAGE(WM_MSGID(EID_JOIN_CHANNEL_SUCCESS),
+           CAgoraQuickStartDlg::OnEIDJoinChannelSuccess)
+ON_MESSAGE(WM_MSGID(EID_USER_JOINED), &CAgoraQuickStartDlg::OnEIDUserJoined)
+ON_MESSAGE(WM_MSGID(EID_USER_OFFLINE), &CAgoraQuickStartDlg::OnEIDUserOffline)
 END_MESSAGE_MAP()
 
 // Insert your project's App ID obtained from the Agora Console
 #define APP_ID "71aa4763f35149369959d89afe2e504c"
+
+// Insert the temporary token obtained from the Agora Console
+#define TOKEN                                                                  \
+  "007eJxTYGDq2/ymvtOj5ZNo+/"                                                  \
+  "n78xU6G30eeNbPdxT+EX+"                                                      \
+  "97lQSo7gCg7lhYqKJuZlxmrGpoYmlsZmlpallioVlYlqqUaqpgUmyIVddRkMgI8OFpikMjFAI4" \
+  "rMwFCSW5jAwAABCAx7M"
 
 // CAgoraQuickStartDlg message handlers
 
@@ -205,13 +222,7 @@ LRESULT CAgoraQuickStartDlg::OnEIDUserJoined(WPARAM wParam, LPARAM lParam) {
   if (m_remoteRender) {
     return 0;
   }
-  // Render remote view
-  VideoCanvas canvas;
-  canvas.renderMode = RENDER_MODE_TYPE::RENDER_MODE_HIDDEN;
-  canvas.uid = remoteUid;
-  canvas.view = m_staRemote.GetSafeHwnd();
-  m_rtcEngine->setupRemoteVideo(canvas);
-  m_remoteRender = true;
+  setupRemoteVideo(remoteUid);
   return 0;
 }
 
@@ -269,4 +280,23 @@ void CAgoraQuickStartDlg::leaveChannel() {
     m_rtcEngine->setupLocalVideo(canvas);
     m_remoteRender = false;
   }
+}
+
+void CAgoraQuickStartDlg::OnBnClickedBtnJoin() {
+  CString strChannelName;
+  m_edtChannelName.GetWindowText(strChannelName);
+  if (strChannelName.IsEmpty()) {
+    AfxMessageBox(_T("Fill channel name first"));
+    return;
+  }
+  joinChannel(TOKEN, CW2A(strChannelName));
+  setupLocalVideo();
+}
+void CAgoraQuickStartDlg::OnBnClickedBtnLeave() {
+  m_rtcEngine->leaveChannel();
+  VideoCanvas canvas;
+  canvas.uid = 0;
+  m_rtcEngine->setupLocalVideo(canvas);
+  m_rtcEngine->startPreview();
+  m_remoteRender = false;
 }

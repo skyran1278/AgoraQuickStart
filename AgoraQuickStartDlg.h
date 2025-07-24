@@ -23,12 +23,25 @@ class CAgoraQuickStartDlg : public CDialog {
   enum { IDD = IDD_AGORAQUICKSTART_DIALOG };
 #endif
 
+  // Handle the join/leave button click event
+  afx_msg void OnBnClickedBtnJoin();
+  afx_msg void OnBnClickedBtnLeave();
+
+  // Handle callback events such as user joining/user leaving
+  afx_msg LRESULT OnEIDJoinChannelSuccess(WPARAM wParam, LPARAM lParam);
+  afx_msg LRESULT OnEIDUserJoined(WPARAM wParam, LPARAM lParam);
+  afx_msg LRESULT OnEIDUserOffline(WPARAM wParam, LPARAM lParam);
+
  protected:
   virtual void DoDataExchange(CDataExchange *pDX);  // DDX/DDV support
 
   // Implementation
  protected:
   HICON m_hIcon;
+
+  CEdit m_edtChannelName;
+  CEdit m_staRemote;
+  CEdit m_staLocal;
 
   // Generated message map functions
   virtual BOOL OnInitDialog();
@@ -43,9 +56,6 @@ class CAgoraQuickStartDlg : public CDialog {
   IRtcEngine *m_rtcEngine = nullptr;  // RTC engine instance
 
   bool m_remoteRender = false;
-
-  CEdit m_staRemote;
-  CEdit m_staLocal;
 
   /**
    * @brief
@@ -62,11 +72,6 @@ class CAgoraQuickStartDlg : public CDialog {
    * @param channelName
    */
   void joinChannel(const char *token, const char *channelName);
-
-  // Handle callback events such as user joining/user leaving
-  LRESULT OnEIDJoinChannelSuccess(WPARAM wParam, LPARAM lParam);
-  LRESULT OnEIDUserJoined(WPARAM wParam, LPARAM lParam);
-  LRESULT OnEIDUserOffline(WPARAM wParam, LPARAM lParam);
 
   /**
    * @brief
