@@ -39,4 +39,5 @@ class CAgoraQuickStartDlg : public CDialog {
   IRtcEngine *m_rtcEngine = nullptr;  // RTC engine instance
 
   void initializeAgoraEngine();
+  void joinChannel(const char *token, const char *channelName);
 };

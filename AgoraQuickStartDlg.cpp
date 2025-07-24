@@ -165,3 +165,33 @@ void CAgoraQuickStartDlg::initializeAgoraEngine() {
     AfxMessageBox(_T("Failed to initialize Agora RTC engine"));
   }
 }
+
+/**
+ * @brief
+ * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#join-a-channel
+ *
+ * @param token
+ * @param channelName
+ */
+void CAgoraQuickStartDlg::joinChannel(const char* token,
+                                      const char* channelName) {
+  ChannelMediaOptions options;
+  // Set channel profile to live broadcasting
+  options.channelProfile =
+      agora::CHANNEL_PROFILE_TYPE::CHANNEL_PROFILE_LIVE_BROADCASTING;
+  // Set user role to broadcaster; keep default value if setting user role to
+  // audience
+  options.clientRoleType = CLIENT_ROLE_BROADCASTER;
+  // Publish the audio stream captured by the microphone
+  options.publishMicrophoneTrack = true;
+  // Publish the camera track
+  options.publishCameraTrack = true;
+  // Automatically subscribe to all audio streams
+  options.autoSubscribeAudio = true;
+  // Automatically subscribe to all video streams
+  options.autoSubscribeVideo = true;
+  // Specify the audio latency level
+  options.audienceLatencyLevel = AUDIENCE_LATENCY_LEVEL_LOW_LATENCY;
+  // Join the channel using the token and channel name (both are const char*)
+  m_rtcEngine->joinChannel(token, channelName, 0, options);
+}
