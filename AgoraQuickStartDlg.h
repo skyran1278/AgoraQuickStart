@@ -4,6 +4,9 @@
 
 #pragma once
 
+#include <opencv2/opencv.hpp>
+#include <opencv2/videoio.hpp>
+
 #include "CAgoraQuickStartRtcEngineEventHandler.h"
 #include "IAgoraRtcEngine.h"
 
@@ -54,9 +57,19 @@ class CAgoraQuickStartDlg : public CDialog {
   // Declare the required variables
   bool m_initialize = false;
   IRtcEngine *m_rtcEngine = nullptr;  // RTC engine instance
+  agora::util::AutoPtr<agora::media::IMediaEngine> m_mediaEngine;
   CAgoraQuickStartRtcEngineEventHandler m_eventHandler;
 
   bool m_remoteRender = false;
+
+  int m_videoTrackId = -1;
+
+  cv::VideoCapture m_videoCap;
+  cv::VideoWriter m_localWriter;
+
+  std::thread m_videoThread;
+  std::atomic<bool> m_stopCapture{false};
+  std::mutex m_frameMutex;
 
   /**
    * @brief
@@ -95,4 +108,10 @@ class CAgoraQuickStartDlg : public CDialog {
    *
    */
   void leaveChannel();
+
+  // Video processing methods
+  void startVideoCapture();
+  void stopVideoCapture();
+  void videoCaptureLoop();
+  void processFrame(const cv::Mat &highResFrame);
 };
