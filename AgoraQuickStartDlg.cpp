@@ -86,10 +86,10 @@ END_MESSAGE_MAP()
 #define APP_ID "71aa4763f35149369959d89afe2e504c"
 
 // Insert the temporary token obtained from the Agora Console
-#define TOKEN                                                         \
-  "007eJxTYAgvqHitPCMgpfRu5XWevS72n1I6j+"                             \
-  "bvXXPYqpCrpnVVwEoFBnPDxEQTczPjNGNTQxNLYzNLS1PLFAvLxLRUo1RTA5Nkj6+" \
-  "NGQ2BjAzKWw6xMjJAIIjPwlCQWJrDwAAAYKUfyQ=="
+#define TOKEN                                                                  \
+  "007eJxTYDiQk/FD8WvmRT4zQ6mVL/3qu8LPXT6+cRubB5/"                             \
+  "AbYtf4osVGMwNExNNzM2M04xNDU0sjc0sLU0tUywsE9NSjVJNDUySV99ry2gIZGS49NuFhZEBA" \
+  "kF8FoaCxNIcBgYAXAUgHw=="
 
 // CAgoraQuickStartDlg message handlers
 
