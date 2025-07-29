@@ -215,15 +215,18 @@
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="AgoraEventHandler.h" />
+    <ClInclude Include="AgoraManager.h" />
     <ClInclude Include="AgoraQuickStart.h" />
     <ClInclude Include="AgoraQuickStartDlg.h" />
-    <ClInclude Include="CAgoraQuickStartRtcEngineEventHandler.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="AgoraEventHandler.cpp" />
+    <ClCompile Include="AgoraManager.cpp" />
     <ClCompile Include="AgoraQuickStart.cpp" />
     <ClCompile Include="AgoraQuickStartDlg.cpp" />
     <ClCompile Include="pch.cpp">

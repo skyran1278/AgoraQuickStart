@@ -1,4 +1,5 @@
 #pragma once
+
 #include "IAgoraRtcEngine.h"
 
 using namespace agora::rtc;
@@ -14,41 +15,30 @@ using namespace agora::rtc;
  * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#subscribe-to--events
  *
  */
-// Define the CAgoraQuickStartRtcEngineEventHandler class to handle callback
+// Define the AgoraEventHandler class to handle callback
 // events such as users joining and leaving the channel
-class CAgoraQuickStartRtcEngineEventHandler : public IRtcEngineEventHandler {
+class AgoraEventHandler : public IRtcEngineEventHandler {
  public:
-  CAgoraQuickStartRtcEngineEventHandler() : m_hMsgHandler(nullptr) {}
+  AgoraEventHandler();
 
   // Set the handle of the message receiving window
-  void SetMsgReceiver(HWND hWnd) { m_hMsgHandler = hWnd; }
+  void SetMsgReceiver(HWND hWnd);
 
   // Register onJoinChannelSuccess callback
   // This callback is triggered when a local user successfully joins a channel
   virtual void onJoinChannelSuccess(const char *channel, uid_t uid,
-                                    int elapsed) {
-    if (m_hMsgHandler) {
-      ::PostMessage(m_hMsgHandler, WM_MSGID(EID_JOIN_CHANNEL_SUCCESS), uid, 0);
-    }
-  }
+                                    int elapsed) override;
 
   // Register onUserJoined callback
   // This callback is triggered when the remote host successfully joins the
   // channel
-  virtual void onUserJoined(uid_t uid, int elapsed) {
-    if (m_hMsgHandler) {
-      ::PostMessage(m_hMsgHandler, WM_MSGID(EID_USER_JOINED), uid, 0);
-    }
-  }
+  virtual void onUserJoined(uid_t uid, int elapsed) override;
 
   // Register onUserOffline callback
   // This callback is triggered when the remote host leaves the channel or is
   // offline
-  virtual void onUserOffline(uid_t uid, USER_OFFLINE_REASON_TYPE reason) {
-    if (m_hMsgHandler) {
-      ::PostMessage(m_hMsgHandler, WM_MSGID(EID_USER_OFFLINE), uid, 0);
-    }
-  }
+  virtual void onUserOffline(uid_t uid,
+                             USER_OFFLINE_REASON_TYPE reason) override;
 
  private:
   HWND m_hMsgHandler;

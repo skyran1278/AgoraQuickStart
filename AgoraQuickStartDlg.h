@@ -4,14 +4,7 @@
 
 #pragma once
 
-#include <opencv2/opencv.hpp>
-#include <opencv2/videoio.hpp>
-
-#include "CAgoraQuickStartRtcEngineEventHandler.h"
-#include "IAgoraRtcEngine.h"
-
-using namespace agora::rtc;
-using namespace agora::media::base;
+#include "AgoraManager.h"
 
 // CAgoraQuickStartDlg dialog
 class CAgoraQuickStartDlg : public CDialog {
@@ -54,64 +47,6 @@ class CAgoraQuickStartDlg : public CDialog {
   DECLARE_MESSAGE_MAP()
 
  private:
-  // Declare the required variables
-  bool m_initialize = false;
-  IRtcEngine *m_rtcEngine = nullptr;  // RTC engine instance
-  agora::util::AutoPtr<agora::media::IMediaEngine> m_mediaEngine;
-  CAgoraQuickStartRtcEngineEventHandler m_eventHandler;
-
-  bool m_remoteRender = false;
-
-  int m_videoTrackId = -1;
-
-  cv::VideoCapture m_videoCap;
-  cv::VideoWriter m_localWriter;
-
-  std::thread m_videoThread;
-  std::atomic<bool> m_stopCapture{false};
-  std::mutex m_frameMutex;
-
-  /**
-   * @brief
-   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#initialize-the-engine
-   *
-   */
-  void initializeAgoraEngine();
-
-  /**
-   * @brief
-   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#join-a-channel
-   *
-   * @param token
-   * @param channelName
-   */
-  void joinChannel(const char *token, const char *channelName);
-
-  /**
-   * @brief
-   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#display-the-local-video
-   *
-   */
-  void setupLocalVideo();
-
-  /**
-   * @brief
-   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#display-remote-video
-   *
-   * @param remoteUid
-   */
-  void setupRemoteVideo(uid_t remoteUid);
-
-  /**
-   * @brief
-   * https://docs.agora.io/en/broadcast-streaming/get-started/get-started-sdk?platform=windows#leave-the-channel
-   *
-   */
-  void leaveChannel();
-
-  // Video processing methods
-  void startVideoCapture();
-  void stopVideoCapture();
-  void videoCaptureLoop();
-  void processFrame(const cv::Mat &highResFrame);
+  // Agora manager to handle all RTC operations
+  AgoraManager m_agoraManager;
 };
