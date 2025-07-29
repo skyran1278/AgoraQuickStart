@@ -44,6 +44,9 @@ bool AgoraManager::initialize(HWND hWnd) {
   m_initialize = (ret == 0);
 
   if (m_initialize) {
+    // Set initial video encoder configuration
+    updateVideoEncoderConfiguration();
+
     // Enable the video module
     m_rtcEngine->enableVideo();
 
@@ -57,9 +60,6 @@ bool AgoraManager::initialize(HWND hWnd) {
       AfxMessageBox(_T("Failed to create custom video track"));
       return false;
     }
-
-    // Set initial video encoder configuration
-    updateVideoEncoderConfiguration();
   } else {
     AfxMessageBox(_T("Failed to initialize Agora RTC engine"));
     return false;
@@ -255,10 +255,10 @@ void AgoraManager::videoCaptureLoop() {
   auto lastFrameTime = std::chrono::steady_clock::now();
 
   // Calculate frame interval and skip ratio based on configured FPS
-  const auto frameInterval = std::chrono::milliseconds(1000 / m_pushFPS);
   const int captureFrameRate = 60;  // Assume 60 FPS capture
+  const auto frameInterval = std::chrono::milliseconds(1000 / captureFrameRate);
   const int frameSkipRatio =
-      captureFrameRate / m_pushFPS;  // How many frames to skip
+      captureFrameRate / captureFrameRate;  // How many frames to skip
 
   m_frameCounter = 0;
 
@@ -312,8 +312,8 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
     cv::Mat lowResFrame;
 
     // Resize to current resolution setting for network transmission
-    cv::resize(highResFrame, lowResFrame, cv::Size(m_videoWidth, m_videoHeight),
-               0, 0, cv::INTER_LINEAR);
+    cv::resize(highResFrame, lowResFrame, cv::Size(1920, 1080), 0, 0,
+               cv::INTER_LINEAR);
 
     // Convert BGR to YUV I420 format required by Agora
     cv::Mat yuvI420;
@@ -325,8 +325,8 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
       frame.type = ExternalVideoFrame::VIDEO_BUFFER_TYPE::VIDEO_BUFFER_RAW_DATA;
       frame.format = VIDEO_PIXEL_I420;
       frame.buffer = yuvI420.data;
-      frame.stride = m_videoWidth;
-      frame.height = m_videoHeight;
+      frame.stride = 1920;
+      frame.height = 1080;
       frame.rotation = 0;
       frame.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now().time_since_epoch())
@@ -346,45 +346,79 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
 }
 
 void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
-  m_currentNetworkQuality = networkQuality;
+  // Only adjust if network quality is consistently stable to avoid frequent
+  // switching
+  static int lastStableQuality = -1;
+  static int currentQualityTier = -1;
+  static int stabilityCounter = 0;
+  const int DOWNGRADE_THRESHOLD = 2;  // Quick to downgrade (2 readings)
+  const int UPGRADE_THRESHOLD = 5;    // Slow to upgrade (5 readings)
 
-  switch (networkQuality) {
-    case QUALITY_EXCELLENT:
-      setVideoResolution(1920, 1080);
-      setPushFPS(30);
-      break;
-    case QUALITY_GOOD:
-      setVideoResolution(960, 540);
-      setPushFPS(30);
-      break;
-    case QUALITY_POOR:
-      setVideoResolution(640, 360);
-      setPushFPS(15);
-      break;
-    case QUALITY_BAD:
-      setVideoResolution(480, 270);
-      setPushFPS(15);
-      break;
-    case QUALITY_VBAD:
-      setVideoResolution(320, 180);
-      setPushFPS(15);
-      break;
-    case QUALITY_DOWN:
-      setVideoResolution(160, 90);
-      setPushFPS(1);
-      break;
-    default:
-      // Fallback to medium quality
-      setVideoResolution(640, 360);
-      setPushFPS(15);
-      break;
+  // Determine target quality tier with hysteresis (easier to go down than up)
+  int targetTier;
+  if (networkQuality >= QUALITY_EXCELLENT && networkQuality <= QUALITY_GOOD) {
+    targetTier = 2;  // High quality tier
+  } else if (networkQuality == QUALITY_POOR) {
+    targetTier = 1;  // Medium quality tier
+  } else {
+    targetTier = 0;  // Low quality tier (default to lowest)
   }
 
-  // Log the quality adjustment
-  CString logMsg;
-  logMsg.Format(_T("Network quality: %d, adjusted to %dx%d@%dfps\n"),
-                networkQuality, m_videoWidth, m_videoHeight, m_pushFPS);
-  OutputDebugString(logMsg);
+  // Check if quality tier is consistent
+  if (currentQualityTier == targetTier) {
+    stabilityCounter++;
+  } else {
+    // Quality tier changed, reset counter
+    currentQualityTier = targetTier;
+    stabilityCounter = 1;
+  }
+
+  // Determine required threshold based on upgrade/downgrade direction
+  int requiredThreshold;
+  if (lastStableQuality == -1) {
+    requiredThreshold =
+        DOWNGRADE_THRESHOLD;  // First time, use downgrade threshold
+  } else if (targetTier < lastStableQuality) {
+    requiredThreshold = DOWNGRADE_THRESHOLD;  // Downgrading (easier)
+  } else {
+    requiredThreshold = UPGRADE_THRESHOLD;  // Upgrading (harder)
+  }
+
+  // Only make changes if quality has been stable for required readings
+  // and it's different from current applied quality
+  if (stabilityCounter >= requiredThreshold &&
+      lastStableQuality != targetTier) {
+    lastStableQuality = targetTier;
+
+    switch (targetTier) {
+      case 2:  // High quality
+        setVideoResolution(1280, 720);
+        setPushFPS(FRAME_RATE_FPS_15);
+        m_currentNetworkQuality = QUALITY_GOOD;
+        break;
+      case 1:  // Medium quality
+        setVideoResolution(640, 360);
+        setPushFPS(FRAME_RATE_FPS_10);
+        m_currentNetworkQuality = QUALITY_POOR;
+        break;
+      case 0:  // Low quality (default)
+      default:
+        setVideoResolution(320, 180);
+        setPushFPS(FRAME_RATE_FPS_1);
+        m_currentNetworkQuality = QUALITY_VBAD;
+        break;
+    }
+
+    // Log the quality adjustment
+    CString logMsg;
+    logMsg.Format(
+        _T("Network quality tier STABILIZED and changed to tier %d (quality ")
+        _T("%d), settings: ")
+        _T("%dx%d@%dfps\n"),
+        targetTier, m_currentNetworkQuality, m_videoWidth, m_videoHeight,
+        m_pushFPS);
+    OutputDebugString(logMsg);
+  }
 }
 
 void AgoraManager::setVideoResolution(int width, int height) {

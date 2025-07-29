@@ -76,7 +76,8 @@ class AgoraManager {
   std::thread m_videoThread;
   std::atomic<bool> m_stopCapture;
   std::mutex m_frameMutex;
-  int m_frameCounter;  // For frame skipping  // Private methods
+  int m_frameCounter;  // For frame skipping
+  // Private methods
   void videoCaptureLoop();
   void processFrame(const cv::Mat& highResFrame);
 };
