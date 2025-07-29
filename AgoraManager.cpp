@@ -17,8 +17,6 @@ AgoraManager::AgoraManager()
       m_videoWidth(640),      // Default resolution
       m_videoHeight(360),
       m_currentNetworkQuality(1),  // Assume good quality initially
-      m_bitrateStrategy(
-          STRATEGY_DYNAMIC_CALC),  // Default to dynamic calculation
       m_stopCapture(false),
       m_frameCounter(0) {}
 
@@ -424,76 +422,17 @@ void AgoraManager::updateVideoEncoderConfiguration() {
     videoConfig.frameRate = FRAME_RATE_FPS_1;
   }
 
-  // Calculate appropriate bitrate based on resolution and frame rate
-  int pixelCount = m_videoWidth * m_videoHeight;
-
-  // Dynamic bitrate calculation based on resolution, fps, and network quality
-  // Base formula: (pixels * fps * bits_per_pixel) with quality multiplier
-
-  float bitsPerPixel = 0.1f;  // Base bits per pixel
-  float qualityMultiplier = 1.0f;
-
-  // Adjust quality multiplier based on network condition
-  switch (m_currentNetworkQuality) {
-    case QUALITY_EXCELLENT:      // Best quality
-      qualityMultiplier = 1.5f;  // Allow higher bitrate for better quality
-      bitsPerPixel = 0.15f;      // More bits per pixel
-      break;
-    case QUALITY_GOOD:
-      qualityMultiplier = 1.0f;  // Standard quality
-      bitsPerPixel = 0.12f;
-      break;
-    case QUALITY_POOR:
-      qualityMultiplier = 0.7f;  // Reduce quality to maintain stability
-      bitsPerPixel = 0.1f;
-      break;
-    case QUALITY_BAD:
-      qualityMultiplier = 0.5f;  // Aggressive reduction
-      bitsPerPixel = 0.08f;
-      break;
-    case QUALITY_VBAD:
-      qualityMultiplier = 0.3f;  // Very low quality
-      bitsPerPixel = 0.06f;
-      break;
-    case QUALITY_DOWN:
-      qualityMultiplier = 0.2f;  // Minimal quality
-      bitsPerPixel = 0.04f;
-      break;
-    default:
-      qualityMultiplier = 0.8f;
-      bitsPerPixel = 0.1f;
-      break;
-  }
-
-  // Calculate bitrate using selected strategy
-  int baseBitrate = 0;
-
-  switch (m_bitrateStrategy) {
-    case STRATEGY_FIXED_PRESETS:
-      baseBitrate = calculateFixedBitrate();
-      break;
-    case STRATEGY_DYNAMIC_CALC:
-      baseBitrate = calculateDynamicBitrate();
-      break;
-    case STRATEGY_CONSERVATIVE:
-      baseBitrate = calculateConservativeBitrate();
-      break;
-    default:
-      baseBitrate = calculateDynamicBitrate();
-      break;
-  }
-
-  videoConfig.bitrate = baseBitrate;
-
   // Set encoding preferences based on network quality
   if (m_currentNetworkQuality <= QUALITY_GOOD) {
     // Good network - prioritize quality
     videoConfig.orientationMode = ORIENTATION_MODE_ADAPTIVE;
     videoConfig.degradationPreference = MAINTAIN_QUALITY;
+    videoConfig.bitrate = STANDARD_BITRATE;
   } else {
     // Poor network - prioritize framerate
     videoConfig.orientationMode = ORIENTATION_MODE_FIXED_LANDSCAPE;
     videoConfig.degradationPreference = MAINTAIN_FRAMERATE;
+    videoConfig.bitrate = COMPATIBLE_BITRATE;
   }
 
   // Apply the video encoding configuration
@@ -506,9 +445,8 @@ void AgoraManager::updateVideoEncoderConfiguration() {
     OutputDebugString(errorMsg);
   } else {
     CString successMsg;
-    successMsg.Format(
-        _T("Updated video encoder: %dx%d@%dfps, bitrate: %d bps\n"),
-        m_videoWidth, m_videoHeight, m_pushFPS, baseBitrate);
+    successMsg.Format(_T("Updated video encoder: %dx%d@%dfps\n"), m_videoWidth,
+                      m_videoHeight, m_pushFPS);
     OutputDebugString(successMsg);
   }
 }
@@ -524,109 +462,4 @@ void AgoraManager::getCurrentVideoSettings(int& width, int& height,
   width = m_videoWidth;
   height = m_videoHeight;
   fps = m_pushFPS;
-}
-
-int AgoraManager::calculateFixedBitrate() {
-  // Original fixed bitrate approach
-  switch (m_currentNetworkQuality) {
-    case QUALITY_EXCELLENT:
-      return 2000000;  // 2 Mbps
-    case QUALITY_GOOD:
-      return 1000000;  // 1 Mbps
-    case QUALITY_POOR:
-      return 600000;  // 600 Kbps
-    case QUALITY_BAD:
-      return 400000;  // 400 Kbps
-    case QUALITY_VBAD:
-      return 200000;  // 200 Kbps
-    case QUALITY_DOWN:
-      return 100000;  // 100 Kbps
-    default:
-      return 600000;  // Default
-  }
-}
-
-int AgoraManager::calculateDynamicBitrate() {
-  // Dynamic calculation based on resolution, fps, and network quality
-  int pixelCount = m_videoWidth * m_videoHeight;
-  float bitsPerPixel = 0.1f;
-  float qualityMultiplier = 1.0f;
-
-  // Adjust based on network quality
-  switch (m_currentNetworkQuality) {
-    case QUALITY_EXCELLENT:
-      qualityMultiplier = 1.5f;
-      bitsPerPixel = 0.15f;
-      break;
-    case QUALITY_GOOD:
-      qualityMultiplier = 1.0f;
-      bitsPerPixel = 0.12f;
-      break;
-    case QUALITY_POOR:
-      qualityMultiplier = 0.7f;
-      bitsPerPixel = 0.1f;
-      break;
-    case QUALITY_BAD:
-      qualityMultiplier = 0.5f;
-      bitsPerPixel = 0.08f;
-      break;
-    case QUALITY_VBAD:
-      qualityMultiplier = 0.3f;
-      bitsPerPixel = 0.06f;
-      break;
-    case QUALITY_DOWN:
-      qualityMultiplier = 0.2f;
-      bitsPerPixel = 0.04f;
-      break;
-    default:
-      qualityMultiplier = 0.8f;
-      bitsPerPixel = 0.1f;
-      break;
-  }
-
-  int baseBitrate =
-      (int)(pixelCount * m_pushFPS * bitsPerPixel * qualityMultiplier);
-
-  // Apply bounds
-  return __max(64000, __min(4000000, baseBitrate));
-}
-
-int AgoraManager::calculateConservativeBitrate() {
-  // More conservative approach - prioritizes stability over quality
-  int pixelCount = m_videoWidth * m_videoHeight;
-  float conservativeFactor = 0.6f;  // More conservative than dynamic
-
-  // Base bitrate calculation with conservative multipliers
-  float bitsPerPixel = 0.06f;  // Lower base rate
-  float qualityMultiplier = 1.0f;
-
-  switch (m_currentNetworkQuality) {
-    case QUALITY_EXCELLENT:
-      qualityMultiplier = 1.2f;  // Less aggressive than dynamic
-      break;
-    case QUALITY_GOOD:
-      qualityMultiplier = 0.8f;
-      break;
-    case QUALITY_POOR:
-      qualityMultiplier = 0.5f;
-      break;
-    case QUALITY_BAD:
-      qualityMultiplier = 0.3f;
-      break;
-    case QUALITY_VBAD:
-      qualityMultiplier = 0.2f;
-      break;
-    case QUALITY_DOWN:
-      qualityMultiplier = 0.1f;
-      break;
-    default:
-      qualityMultiplier = 0.6f;
-      break;
-  }
-
-  int baseBitrate = (int)(pixelCount * m_pushFPS * bitsPerPixel *
-                          qualityMultiplier * conservativeFactor);
-
-  // More restrictive bounds for stability
-  return __max(32000, __min(2000000, baseBitrate));
 }
