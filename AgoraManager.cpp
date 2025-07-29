@@ -12,7 +12,10 @@ AgoraManager::AgoraManager()
       m_initialize(false),
       m_remoteRender(false),
       m_videoTrackId(-1),
-      m_stopCapture(false) {}
+      m_pushFPS(30),          // Default to 30 FPS
+      m_timeBasedPush(true),  // Default to time-based
+      m_stopCapture(false),
+      m_frameCounter(0) {}
 
 AgoraManager::~AgoraManager() { release(); }
 
@@ -244,7 +247,14 @@ void AgoraManager::stopVideoCapture() {
 void AgoraManager::videoCaptureLoop() {
   cv::Mat highResFrame;
   auto lastFrameTime = std::chrono::steady_clock::now();
-  const auto frameInterval = std::chrono::milliseconds(17);  // ~60 FPS
+
+  // Calculate frame interval and skip ratio based on configured FPS
+  const auto frameInterval = std::chrono::milliseconds(1000 / m_pushFPS);
+  const int captureFrameRate = 60;  // Assume 60 FPS capture
+  const int frameSkipRatio =
+      captureFrameRate / m_pushFPS;  // How many frames to skip
+
+  m_frameCounter = 0;
 
   while (!m_stopCapture && m_videoCap.isOpened()) {
     // Capture frame
@@ -253,22 +263,7 @@ void AgoraManager::videoCaptureLoop() {
       continue;
     }
 
-    // Process frame (save locally + send to Agora)
-    processFrame(highResFrame);
-
-    // Frame rate control
-    auto currentTime = std::chrono::steady_clock::now();
-    auto elapsed = currentTime - lastFrameTime;
-    if (elapsed < frameInterval) {
-      std::this_thread::sleep_for(frameInterval - elapsed);
-    }
-    lastFrameTime = std::chrono::steady_clock::now();
-  }
-}
-
-void AgoraManager::processFrame(const cv::Mat& highResFrame) {
-  try {
-    // 1. Save high-resolution frame locally
+    // Save high-resolution frame locally (always save)
     {
       std::lock_guard<std::mutex> lock(m_frameMutex);
       if (m_localWriter.isOpened()) {
@@ -276,7 +271,38 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
       }
     }
 
-    // 2. Prepare low-resolution frame for Agora
+    bool shouldPushFrame = false;
+
+    if (m_timeBasedPush) {
+      // Time-based approach: push based on time intervals
+      auto currentTime = std::chrono::steady_clock::now();
+      auto elapsed = currentTime - lastFrameTime;
+      if (elapsed >= frameInterval) {
+        shouldPushFrame = true;
+        lastFrameTime = currentTime;
+      }
+    } else {
+      // Frame-skipping approach: push every Nth frame
+      m_frameCounter++;
+      if (m_frameCounter >= frameSkipRatio) {
+        shouldPushFrame = true;
+        m_frameCounter = 0;
+      }
+    }
+
+    // Process frame for Agora push only if needed
+    if (shouldPushFrame) {
+      processFrame(highResFrame);
+    }
+
+    // Small delay to prevent excessive CPU usage
+    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+  }
+}
+
+void AgoraManager::processFrame(const cv::Mat& highResFrame) {
+  try {
+    // Prepare low-resolution frame for Agora
     cv::Mat lowResFrame;
 
     // Resize to lower resolution for network transmission
@@ -287,7 +313,7 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
     cv::Mat yuvI420;
     cv::cvtColor(lowResFrame, yuvI420, cv::COLOR_BGR2YUV_I420);
 
-    // 3. Create ExternalVideoFrame and push to Agora
+    // Create ExternalVideoFrame and push to Agora
     if (m_mediaEngine && m_videoTrackId >= 0) {
       ExternalVideoFrame frame;
       frame.type = ExternalVideoFrame::VIDEO_BUFFER_TYPE::VIDEO_BUFFER_RAW_DATA;

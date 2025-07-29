@@ -35,7 +35,14 @@ class AgoraManager {
   void startVideoCapture();
   void stopVideoCapture();
 
-  // Getters for state
+  // FPS configuration
+  void setPushFPS(int fps) { m_pushFPS = fps; }
+  int getPushFPS() const { return m_pushFPS; }
+
+  // Set push mode: true for time-based, false for frame-skipping
+  void setTimeBasedPush(bool timeBased) {
+    m_timeBasedPush = timeBased;
+  }  // Getters for state
   bool isInitialized() const { return m_initialize; }
   bool isRemoteRenderActive() const { return m_remoteRender; }
 
@@ -49,15 +56,15 @@ class AgoraManager {
   bool m_initialize;
   bool m_remoteRender;
   int m_videoTrackId;
-
-  // Video capture components
+  int m_pushFPS;         // Configurable push FPS
+  bool m_timeBasedPush;  // true for time-based, false for frame-skipping  //
+                         // Video capture components
   cv::VideoCapture m_videoCap;
   cv::VideoWriter m_localWriter;
   std::thread m_videoThread;
   std::atomic<bool> m_stopCapture;
   std::mutex m_frameMutex;
-
-  // Private methods
+  int m_frameCounter;  // For frame skipping  // Private methods
   void videoCaptureLoop();
   void processFrame(const cv::Mat& highResFrame);
 };
