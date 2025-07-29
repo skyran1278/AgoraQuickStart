@@ -36,13 +36,29 @@ class AgoraManager {
   void stopVideoCapture();
 
   // FPS configuration
-  void setPushFPS(int fps) { m_pushFPS = fps; }
+  void setPushFPS(int fps);
   int getPushFPS() const { return m_pushFPS; }
 
   // Set push mode: true for time-based, false for frame-skipping
-  void setTimeBasedPush(bool timeBased) {
-    m_timeBasedPush = timeBased;
-  }  // Getters for state
+  void setTimeBasedPush(bool timeBased) { m_timeBasedPush = timeBased; }
+
+  // Video quality management based on network conditions
+  void adjustVideoQualityBasedOnNetwork(int networkQuality);
+  void setVideoResolution(int width, int height);
+  void updateVideoEncoderConfiguration();
+  void getCurrentVideoSettings(int& width, int& height, int& fps) const;
+
+  // Advanced bitrate management
+  enum BitrateStrategy {
+    STRATEGY_FIXED_PRESETS,  // Use fixed bitrates per quality level
+    STRATEGY_DYNAMIC_CALC,   // Calculate based on resolution + fps
+    STRATEGY_CONSERVATIVE    // More conservative approach for poor networks
+  };
+  void setBitrateStrategy(BitrateStrategy strategy) {
+    m_bitrateStrategy = strategy;
+  }
+
+  // Getters for state
   bool isInitialized() const { return m_initialize; }
   bool isRemoteRenderActive() const { return m_remoteRender; }
 
@@ -57,8 +73,14 @@ class AgoraManager {
   bool m_remoteRender;
   int m_videoTrackId;
   int m_pushFPS;         // Configurable push FPS
-  bool m_timeBasedPush;  // true for time-based, false for frame-skipping  //
-                         // Video capture components
+  bool m_timeBasedPush;  // true for time-based, false for frame-skipping
+
+  // Video quality settings
+  int m_videoWidth;
+  int m_videoHeight;
+  int m_currentNetworkQuality;
+  BitrateStrategy m_bitrateStrategy;  //
+                                      // Video capture components
   cv::VideoCapture m_videoCap;
   cv::VideoWriter m_localWriter;
   std::thread m_videoThread;
@@ -67,4 +89,9 @@ class AgoraManager {
   int m_frameCounter;  // For frame skipping  // Private methods
   void videoCaptureLoop();
   void processFrame(const cv::Mat& highResFrame);
+
+  // Bitrate calculation strategies
+  int calculateFixedBitrate();
+  int calculateDynamicBitrate();
+  int calculateConservativeBitrate();
 };

@@ -14,6 +14,11 @@ AgoraManager::AgoraManager()
       m_videoTrackId(-1),
       m_pushFPS(30),          // Default to 30 FPS
       m_timeBasedPush(true),  // Default to time-based
+      m_videoWidth(640),      // Default resolution
+      m_videoHeight(360),
+      m_currentNetworkQuality(1),  // Assume good quality initially
+      m_bitrateStrategy(
+          STRATEGY_DYNAMIC_CALC),  // Default to dynamic calculation
       m_stopCapture(false),
       m_frameCounter(0) {}
 
@@ -54,6 +59,9 @@ bool AgoraManager::initialize(HWND hWnd) {
       AfxMessageBox(_T("Failed to create custom video track"));
       return false;
     }
+
+    // Set initial video encoder configuration
+    updateVideoEncoderConfiguration();
   } else {
     AfxMessageBox(_T("Failed to initialize Agora RTC engine"));
     return false;
@@ -302,12 +310,12 @@ void AgoraManager::videoCaptureLoop() {
 
 void AgoraManager::processFrame(const cv::Mat& highResFrame) {
   try {
-    // Prepare low-resolution frame for Agora
+    // Prepare frame for Agora with current resolution settings
     cv::Mat lowResFrame;
 
-    // Resize to lower resolution for network transmission
-    cv::resize(highResFrame, lowResFrame, cv::Size(640, 360), 0, 0,
-               cv::INTER_LINEAR);
+    // Resize to current resolution setting for network transmission
+    cv::resize(highResFrame, lowResFrame, cv::Size(m_videoWidth, m_videoHeight),
+               0, 0, cv::INTER_LINEAR);
 
     // Convert BGR to YUV I420 format required by Agora
     cv::Mat yuvI420;
@@ -319,8 +327,8 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
       frame.type = ExternalVideoFrame::VIDEO_BUFFER_TYPE::VIDEO_BUFFER_RAW_DATA;
       frame.format = VIDEO_PIXEL_I420;
       frame.buffer = yuvI420.data;
-      frame.stride = 640;
-      frame.height = 360;
+      frame.stride = m_videoWidth;
+      frame.height = m_videoHeight;
       frame.rotation = 0;
       frame.timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(
                             std::chrono::steady_clock::now().time_since_epoch())
@@ -337,4 +345,288 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
     error.Format(_T("OpenCV Error: %s"), CString(e.what()));
     OutputDebugString(error);
   }
+}
+
+void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
+  m_currentNetworkQuality = networkQuality;
+
+  switch (networkQuality) {
+    case QUALITY_EXCELLENT:
+      setVideoResolution(1920, 1080);
+      setPushFPS(30);
+      break;
+    case QUALITY_GOOD:
+      setVideoResolution(960, 540);
+      setPushFPS(30);
+      break;
+    case QUALITY_POOR:
+      setVideoResolution(640, 360);
+      setPushFPS(15);
+      break;
+    case QUALITY_BAD:
+      setVideoResolution(480, 270);
+      setPushFPS(15);
+      break;
+    case QUALITY_VBAD:
+      setVideoResolution(320, 180);
+      setPushFPS(15);
+      break;
+    case QUALITY_DOWN:
+      setVideoResolution(160, 90);
+      setPushFPS(1);
+      break;
+    default:
+      // Fallback to medium quality
+      setVideoResolution(640, 360);
+      setPushFPS(15);
+      break;
+  }
+
+  // Log the quality adjustment
+  CString logMsg;
+  logMsg.Format(_T("Network quality: %d, adjusted to %dx%d@%dfps\n"),
+                networkQuality, m_videoWidth, m_videoHeight, m_pushFPS);
+  OutputDebugString(logMsg);
+}
+
+void AgoraManager::setVideoResolution(int width, int height) {
+  m_videoWidth = width;
+  m_videoHeight = height;
+
+  // Update video encoder configuration to match new resolution
+  updateVideoEncoderConfiguration();
+}
+
+void AgoraManager::updateVideoEncoderConfiguration() {
+  if (!m_rtcEngine || !m_initialize) {
+    return;
+  }
+
+  // Create video encoding configuration object
+  VideoEncoderConfiguration videoConfig;
+
+  // Set the video dimensions
+  videoConfig.dimensions.width = m_videoWidth;
+  videoConfig.dimensions.height = m_videoHeight;
+
+  // Set frame rate based on current FPS setting
+  if (m_pushFPS >= 30) {
+    videoConfig.frameRate = FRAME_RATE_FPS_30;
+  } else if (m_pushFPS >= 24) {
+    videoConfig.frameRate = FRAME_RATE_FPS_24;
+  } else if (m_pushFPS >= 15) {
+    videoConfig.frameRate = FRAME_RATE_FPS_15;
+  } else if (m_pushFPS >= 10) {
+    videoConfig.frameRate = FRAME_RATE_FPS_10;
+  } else if (m_pushFPS >= 7) {
+    videoConfig.frameRate = FRAME_RATE_FPS_7;
+  } else {
+    videoConfig.frameRate = FRAME_RATE_FPS_1;
+  }
+
+  // Calculate appropriate bitrate based on resolution and frame rate
+  int pixelCount = m_videoWidth * m_videoHeight;
+
+  // Dynamic bitrate calculation based on resolution, fps, and network quality
+  // Base formula: (pixels * fps * bits_per_pixel) with quality multiplier
+
+  float bitsPerPixel = 0.1f;  // Base bits per pixel
+  float qualityMultiplier = 1.0f;
+
+  // Adjust quality multiplier based on network condition
+  switch (m_currentNetworkQuality) {
+    case QUALITY_EXCELLENT:      // Best quality
+      qualityMultiplier = 1.5f;  // Allow higher bitrate for better quality
+      bitsPerPixel = 0.15f;      // More bits per pixel
+      break;
+    case QUALITY_GOOD:
+      qualityMultiplier = 1.0f;  // Standard quality
+      bitsPerPixel = 0.12f;
+      break;
+    case QUALITY_POOR:
+      qualityMultiplier = 0.7f;  // Reduce quality to maintain stability
+      bitsPerPixel = 0.1f;
+      break;
+    case QUALITY_BAD:
+      qualityMultiplier = 0.5f;  // Aggressive reduction
+      bitsPerPixel = 0.08f;
+      break;
+    case QUALITY_VBAD:
+      qualityMultiplier = 0.3f;  // Very low quality
+      bitsPerPixel = 0.06f;
+      break;
+    case QUALITY_DOWN:
+      qualityMultiplier = 0.2f;  // Minimal quality
+      bitsPerPixel = 0.04f;
+      break;
+    default:
+      qualityMultiplier = 0.8f;
+      bitsPerPixel = 0.1f;
+      break;
+  }
+
+  // Calculate bitrate using selected strategy
+  int baseBitrate = 0;
+
+  switch (m_bitrateStrategy) {
+    case STRATEGY_FIXED_PRESETS:
+      baseBitrate = calculateFixedBitrate();
+      break;
+    case STRATEGY_DYNAMIC_CALC:
+      baseBitrate = calculateDynamicBitrate();
+      break;
+    case STRATEGY_CONSERVATIVE:
+      baseBitrate = calculateConservativeBitrate();
+      break;
+    default:
+      baseBitrate = calculateDynamicBitrate();
+      break;
+  }
+
+  videoConfig.bitrate = baseBitrate;
+
+  // Set encoding preferences based on network quality
+  if (m_currentNetworkQuality <= QUALITY_GOOD) {
+    // Good network - prioritize quality
+    videoConfig.orientationMode = ORIENTATION_MODE_ADAPTIVE;
+    videoConfig.degradationPreference = MAINTAIN_QUALITY;
+  } else {
+    // Poor network - prioritize framerate
+    videoConfig.orientationMode = ORIENTATION_MODE_FIXED_LANDSCAPE;
+    videoConfig.degradationPreference = MAINTAIN_FRAMERATE;
+  }
+
+  // Apply the video encoding configuration
+  int result = m_rtcEngine->setVideoEncoderConfiguration(videoConfig);
+
+  if (result != 0) {
+    CString errorMsg;
+    errorMsg.Format(
+        _T("Failed to set video encoder configuration. Error: %d\n"), result);
+    OutputDebugString(errorMsg);
+  } else {
+    CString successMsg;
+    successMsg.Format(
+        _T("Updated video encoder: %dx%d@%dfps, bitrate: %d bps\n"),
+        m_videoWidth, m_videoHeight, m_pushFPS, baseBitrate);
+    OutputDebugString(successMsg);
+  }
+}
+
+void AgoraManager::setPushFPS(int fps) {
+  m_pushFPS = fps;
+  // Update video encoder configuration to match new FPS
+  updateVideoEncoderConfiguration();
+}
+
+void AgoraManager::getCurrentVideoSettings(int& width, int& height,
+                                           int& fps) const {
+  width = m_videoWidth;
+  height = m_videoHeight;
+  fps = m_pushFPS;
+}
+
+int AgoraManager::calculateFixedBitrate() {
+  // Original fixed bitrate approach
+  switch (m_currentNetworkQuality) {
+    case QUALITY_EXCELLENT:
+      return 2000000;  // 2 Mbps
+    case QUALITY_GOOD:
+      return 1000000;  // 1 Mbps
+    case QUALITY_POOR:
+      return 600000;  // 600 Kbps
+    case QUALITY_BAD:
+      return 400000;  // 400 Kbps
+    case QUALITY_VBAD:
+      return 200000;  // 200 Kbps
+    case QUALITY_DOWN:
+      return 100000;  // 100 Kbps
+    default:
+      return 600000;  // Default
+  }
+}
+
+int AgoraManager::calculateDynamicBitrate() {
+  // Dynamic calculation based on resolution, fps, and network quality
+  int pixelCount = m_videoWidth * m_videoHeight;
+  float bitsPerPixel = 0.1f;
+  float qualityMultiplier = 1.0f;
+
+  // Adjust based on network quality
+  switch (m_currentNetworkQuality) {
+    case QUALITY_EXCELLENT:
+      qualityMultiplier = 1.5f;
+      bitsPerPixel = 0.15f;
+      break;
+    case QUALITY_GOOD:
+      qualityMultiplier = 1.0f;
+      bitsPerPixel = 0.12f;
+      break;
+    case QUALITY_POOR:
+      qualityMultiplier = 0.7f;
+      bitsPerPixel = 0.1f;
+      break;
+    case QUALITY_BAD:
+      qualityMultiplier = 0.5f;
+      bitsPerPixel = 0.08f;
+      break;
+    case QUALITY_VBAD:
+      qualityMultiplier = 0.3f;
+      bitsPerPixel = 0.06f;
+      break;
+    case QUALITY_DOWN:
+      qualityMultiplier = 0.2f;
+      bitsPerPixel = 0.04f;
+      break;
+    default:
+      qualityMultiplier = 0.8f;
+      bitsPerPixel = 0.1f;
+      break;
+  }
+
+  int baseBitrate =
+      (int)(pixelCount * m_pushFPS * bitsPerPixel * qualityMultiplier);
+
+  // Apply bounds
+  return __max(64000, __min(4000000, baseBitrate));
+}
+
+int AgoraManager::calculateConservativeBitrate() {
+  // More conservative approach - prioritizes stability over quality
+  int pixelCount = m_videoWidth * m_videoHeight;
+  float conservativeFactor = 0.6f;  // More conservative than dynamic
+
+  // Base bitrate calculation with conservative multipliers
+  float bitsPerPixel = 0.06f;  // Lower base rate
+  float qualityMultiplier = 1.0f;
+
+  switch (m_currentNetworkQuality) {
+    case QUALITY_EXCELLENT:
+      qualityMultiplier = 1.2f;  // Less aggressive than dynamic
+      break;
+    case QUALITY_GOOD:
+      qualityMultiplier = 0.8f;
+      break;
+    case QUALITY_POOR:
+      qualityMultiplier = 0.5f;
+      break;
+    case QUALITY_BAD:
+      qualityMultiplier = 0.3f;
+      break;
+    case QUALITY_VBAD:
+      qualityMultiplier = 0.2f;
+      break;
+    case QUALITY_DOWN:
+      qualityMultiplier = 0.1f;
+      break;
+    default:
+      qualityMultiplier = 0.6f;
+      break;
+  }
+
+  int baseBitrate = (int)(pixelCount * m_pushFPS * bitsPerPixel *
+                          qualityMultiplier * conservativeFactor);
+
+  // More restrictive bounds for stability
+  return __max(32000, __min(2000000, baseBitrate));
 }

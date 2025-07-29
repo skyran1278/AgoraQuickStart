@@ -6,7 +6,7 @@
 #include "pch.h"
 
 //
-
+#include "AgoraEventHandler.h"  // For message ID definitions
 #include "AgoraQuickStart.h"
 #include "AgoraQuickStartDlg.h"
 #include "afxdialogex.h"
@@ -79,6 +79,8 @@ ON_MESSAGE(WM_MSGID(EID_JOIN_CHANNEL_SUCCESS),
            CAgoraQuickStartDlg::OnEIDJoinChannelSuccess)
 ON_MESSAGE(WM_MSGID(EID_USER_JOINED), &CAgoraQuickStartDlg::OnEIDUserJoined)
 ON_MESSAGE(WM_MSGID(EID_USER_OFFLINE), &CAgoraQuickStartDlg::OnEIDUserOffline)
+ON_MESSAGE(WM_MSGID(EID_NETWORK_QUALITY),
+           &CAgoraQuickStartDlg::OnEIDNetworkQuality)
 END_MESSAGE_MAP()
 
 // CAgoraQuickStartDlg message handlers
@@ -187,6 +189,29 @@ LRESULT CAgoraQuickStartDlg::OnEIDUserOffline(WPARAM wParam, LPARAM lParam) {
     return 0;
   }
   m_agoraManager.clearRemoteVideo(remoteUid);
+  return 0;
+}
+
+LRESULT CAgoraQuickStartDlg::OnEIDNetworkQuality(WPARAM wParam, LPARAM lParam) {
+  // Network quality callback
+  uid_t uid = wParam;
+  int rxQuality = LOWORD(lParam);  // Receive quality
+  int txQuality = HIWORD(lParam);  // Transmit quality
+
+  // Only adjust based on local user's quality (uid == 0) or use worst quality
+  if (uid == 0) {
+    // Use the worse of rx and tx quality for adjustment
+    int worstQuality = std::max(rxQuality, txQuality);
+    m_agoraManager.adjustVideoQualityBasedOnNetwork(worstQuality);
+
+    // Optional: Display quality info in debug output
+    CString debugMsg;
+    debugMsg.Format(
+        _T("Network Quality - UID: %u, TX: %d, RX: %d, Adjusted to: %d\n"), uid,
+        txQuality, rxQuality, worstQuality);
+    OutputDebugString(debugMsg);
+  }
+
   return 0;
 }
 

@@ -9,6 +9,7 @@ using namespace agora::rtc;
 #define EID_JOIN_CHANNEL_SUCCESS 0x00000002
 #define EID_USER_JOINED 0x00000004
 #define EID_USER_OFFLINE 0x00000004
+#define EID_NETWORK_QUALITY 0x00000005
 
 /**
  * @brief
@@ -39,6 +40,11 @@ class AgoraEventHandler : public IRtcEngineEventHandler {
   // offline
   virtual void onUserOffline(uid_t uid,
                              USER_OFFLINE_REASON_TYPE reason) override;
+
+  // Register onNetworkQuality callback
+  // This callback is triggered when network quality changes
+  virtual void onNetworkQuality(uid_t uid, int txQuality,
+                                int rxQuality) override;
 
  private:
   HWND m_hMsgHandler;

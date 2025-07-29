@@ -26,3 +26,13 @@ void AgoraEventHandler::onUserOffline(uid_t uid,
     ::PostMessage(m_hMsgHandler, WM_MSGID(EID_USER_OFFLINE), uid, 0);
   }
 }
+
+void AgoraEventHandler::onNetworkQuality(uid_t uid, int txQuality,
+                                         int rxQuality) {
+  if (m_hMsgHandler) {
+    // Pack both tx and rx quality into lParam (tx in high word, rx in low word)
+    LPARAM qualityInfo = MAKELPARAM(rxQuality, txQuality);
+    ::PostMessage(m_hMsgHandler, WM_MSGID(EID_NETWORK_QUALITY), uid,
+                  qualityInfo);
+  }
+}
