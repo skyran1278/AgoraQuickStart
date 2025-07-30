@@ -12,7 +12,7 @@ AgoraManager::AgoraManager()
       m_initialize(false),
       m_remoteRender(false),
       m_videoTrackId(-1),
-      m_pushFPS(FRAME_RATE_FPS_30),
+      m_pushFPS(FRAME_RATE_FPS_10),
       m_videoWidth(640),  // Default resolution
       m_videoHeight(360),
       m_currentNetworkQuality(1),  // Assume good quality initially
