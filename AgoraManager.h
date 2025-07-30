@@ -36,11 +36,8 @@ class AgoraManager {
   void stopVideoCapture();
 
   // FPS configuration
-  void setPushFPS(int fps);
-  int getPushFPS() const { return m_pushFPS; }
-
-  // Set push mode: true for time-based, false for frame-skipping
-  void setTimeBasedPush(bool timeBased) { m_timeBasedPush = timeBased; }
+  void setPushFPS(FRAME_RATE fps);
+  FRAME_RATE getPushFPS() const { return m_pushFPS; }
 
   // Video quality management based on network conditions
   void adjustVideoQualityBasedOnNetwork(int networkQuality);
@@ -62,8 +59,7 @@ class AgoraManager {
   bool m_initialize;
   bool m_remoteRender;
   int m_videoTrackId;
-  int m_pushFPS;         // Configurable push FPS
-  bool m_timeBasedPush;  // true for time-based, false for frame-skipping
+  FRAME_RATE m_pushFPS;  // Configurable push FPS
 
   // Video quality settings
   int m_videoWidth;
@@ -76,7 +72,7 @@ class AgoraManager {
   std::thread m_videoThread;
   std::atomic<bool> m_stopCapture;
   std::mutex m_frameMutex;
-  int m_frameCounter;  // For frame skipping
+
   // Private methods
   void videoCaptureLoop();
   void processFrame(const cv::Mat& highResFrame);

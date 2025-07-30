@@ -12,13 +12,11 @@ AgoraManager::AgoraManager()
       m_initialize(false),
       m_remoteRender(false),
       m_videoTrackId(-1),
-      m_pushFPS(30),          // Default to 30 FPS
-      m_timeBasedPush(true),  // Default to time-based
-      m_videoWidth(640),      // Default resolution
+      m_pushFPS(FRAME_RATE_FPS_30),
+      m_videoWidth(640),  // Default resolution
       m_videoHeight(360),
       m_currentNetworkQuality(1),  // Assume good quality initially
-      m_stopCapture(false),
-      m_frameCounter(0) {}
+      m_stopCapture(false) {}
 
 AgoraManager::~AgoraManager() { release(); }
 
@@ -260,8 +258,6 @@ void AgoraManager::videoCaptureLoop() {
   const int frameSkipRatio =
       captureFrameRate / captureFrameRate;  // How many frames to skip
 
-  m_frameCounter = 0;
-
   while (!m_stopCapture && m_videoCap.isOpened()) {
     // Capture frame
     if (!m_videoCap.read(highResFrame) || highResFrame.empty()) {
@@ -279,21 +275,12 @@ void AgoraManager::videoCaptureLoop() {
 
     bool shouldPushFrame = false;
 
-    if (m_timeBasedPush) {
-      // Time-based approach: push based on time intervals
-      auto currentTime = std::chrono::steady_clock::now();
-      auto elapsed = currentTime - lastFrameTime;
-      if (elapsed >= frameInterval) {
-        shouldPushFrame = true;
-        lastFrameTime = currentTime;
-      }
-    } else {
-      // Frame-skipping approach: push every Nth frame
-      m_frameCounter++;
-      if (m_frameCounter >= frameSkipRatio) {
-        shouldPushFrame = true;
-        m_frameCounter = 0;
-      }
+    // Time-based approach: push based on time intervals
+    auto currentTime = std::chrono::steady_clock::now();
+    auto elapsed = currentTime - lastFrameTime;
+    if (elapsed >= frameInterval) {
+      shouldPushFrame = true;
+      lastFrameTime = currentTime;
     }
 
     // Process frame for Agora push only if needed
@@ -441,20 +428,7 @@ void AgoraManager::updateVideoEncoderConfiguration() {
   videoConfig.dimensions.width = m_videoWidth;
   videoConfig.dimensions.height = m_videoHeight;
 
-  // Set frame rate based on current FPS setting
-  if (m_pushFPS >= 30) {
-    videoConfig.frameRate = FRAME_RATE_FPS_30;
-  } else if (m_pushFPS >= 24) {
-    videoConfig.frameRate = FRAME_RATE_FPS_24;
-  } else if (m_pushFPS >= 15) {
-    videoConfig.frameRate = FRAME_RATE_FPS_15;
-  } else if (m_pushFPS >= 10) {
-    videoConfig.frameRate = FRAME_RATE_FPS_10;
-  } else if (m_pushFPS >= 7) {
-    videoConfig.frameRate = FRAME_RATE_FPS_7;
-  } else {
-    videoConfig.frameRate = FRAME_RATE_FPS_1;
-  }
+  videoConfig.frameRate = m_pushFPS;
 
   // Set encoding preferences based on network quality
   if (m_currentNetworkQuality <= QUALITY_GOOD) {
@@ -485,7 +459,7 @@ void AgoraManager::updateVideoEncoderConfiguration() {
   }
 }
 
-void AgoraManager::setPushFPS(int fps) {
+void AgoraManager::setPushFPS(FRAME_RATE fps) {
   m_pushFPS = fps;
   // Update video encoder configuration to match new FPS
   updateVideoEncoderConfiguration();
