@@ -396,6 +396,8 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
         break;
     }
 
+    updateVideoEncoderConfiguration();
+
     // Log the quality adjustment
     CString logMsg;
     logMsg.Format(
@@ -411,9 +413,6 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
 void AgoraManager::setVideoResolution(int width, int height) {
   m_videoWidth = width;
   m_videoHeight = height;
-
-  // Update video encoder configuration to match new resolution
-  updateVideoEncoderConfiguration();
 }
 
 void AgoraManager::updateVideoEncoderConfiguration() {
@@ -459,11 +458,7 @@ void AgoraManager::updateVideoEncoderConfiguration() {
   }
 }
 
-void AgoraManager::setPushFPS(FRAME_RATE fps) {
-  m_pushFPS = fps;
-  // Update video encoder configuration to match new FPS
-  updateVideoEncoderConfiguration();
-}
+void AgoraManager::setPushFPS(FRAME_RATE fps) { m_pushFPS = fps; }
 
 void AgoraManager::getCurrentVideoSettings(int& width, int& height,
                                            int& fps) const {
