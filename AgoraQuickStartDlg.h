@@ -28,6 +28,8 @@ class CAgoraQuickStartDlg : public CDialog {
   afx_msg LRESULT OnEIDUserJoined(WPARAM wParam, LPARAM lParam);
   afx_msg LRESULT OnEIDUserOffline(WPARAM wParam, LPARAM lParam);
   afx_msg LRESULT OnEIDNetworkQuality(WPARAM wParam, LPARAM lParam);
+  afx_msg LRESULT OnEIDRtcStats(WPARAM wParam, LPARAM lParam);
+  afx_msg LRESULT OnEIDLocalVideoStats(WPARAM wParam, LPARAM lParam);
 
  protected:
   virtual void DoDataExchange(CDataExchange *pDX);  // DDX/DDV support

@@ -10,6 +10,8 @@ using namespace agora::rtc;
 #define EID_USER_JOINED 0x00000004
 #define EID_USER_OFFLINE 0x00000004
 #define EID_NETWORK_QUALITY 0x00000005
+#define EID_RTC_STATS 0x00000006
+#define EID_LOCAL_VIDEO_STATS 0x00000007
 
 /**
  * @brief
@@ -27,7 +29,7 @@ class AgoraEventHandler : public IRtcEngineEventHandler {
 
   // Register onJoinChannelSuccess callback
   // This callback is triggered when a local user successfully joins a channel
-  virtual void onJoinChannelSuccess(const char *channel, uid_t uid,
+  virtual void onJoinChannelSuccess(const char* channel, uid_t uid,
                                     int elapsed) override;
 
   // Register onUserJoined callback
@@ -45,6 +47,11 @@ class AgoraEventHandler : public IRtcEngineEventHandler {
   // This callback is triggered when network quality changes
   virtual void onNetworkQuality(uid_t uid, int txQuality,
                                 int rxQuality) override;
+
+  virtual void onRtcStats(const agora::rtc::RtcStats& stats) override;
+
+  virtual void onLocalVideoStats(VIDEO_SOURCE_TYPE source,
+                                 const LocalVideoStats& stats) override;
 
  private:
   HWND m_hMsgHandler;

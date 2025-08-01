@@ -16,11 +16,10 @@
 #define new DEBUG_NEW
 #endif
 
-#define TOKEN                                                          \
-  "007eJxTYEhcuXjSguCu/Ow/zL/"                                         \
-  "lTrYHWWQZfM38Fr+fc+"                                                \
-  "fzQsufJvYKDOaGiYkm5mbGacamhiaWxmaWlqaWKRaWiWmpRqmmBibJPbodGQ2BjAx/" \
-  "w+czMTJAIIjPwlCQWJrDwAAAcTQf1w=="
+#define TOKEN                                                                  \
+  "007eJxTYKjh0H/"                                                             \
+  "yoPzxOlbFrxwHfLkWc5xobeqMaZpuJP39zdHSLhYFBnPDxEQTczPjNGNTQxNLYzNLS1PLFAvLx" \
+  "LRUo1RTA5Pkj1I9GQ2BjAwpn1WZGBkgEMRnYShILM1hYAAACpEejA=="
 
 // CAboutDlg dialog used for App About
 
@@ -81,6 +80,9 @@ ON_MESSAGE(WM_MSGID(EID_USER_JOINED), &CAgoraQuickStartDlg::OnEIDUserJoined)
 ON_MESSAGE(WM_MSGID(EID_USER_OFFLINE), &CAgoraQuickStartDlg::OnEIDUserOffline)
 ON_MESSAGE(WM_MSGID(EID_NETWORK_QUALITY),
            &CAgoraQuickStartDlg::OnEIDNetworkQuality)
+ON_MESSAGE(WM_MSGID(EID_RTC_STATS), &CAgoraQuickStartDlg::OnEIDRtcStats)
+ON_MESSAGE(WM_MSGID(EID_LOCAL_VIDEO_STATS),
+           &CAgoraQuickStartDlg::OnEIDLocalVideoStats)
 END_MESSAGE_MAP()
 
 // CAgoraQuickStartDlg message handlers
@@ -211,6 +213,45 @@ LRESULT CAgoraQuickStartDlg::OnEIDNetworkQuality(WPARAM wParam, LPARAM lParam) {
         txQuality, rxQuality, worstQuality);
     OutputDebugString(debugMsg);
   }
+
+  return 0;
+}
+
+LRESULT CAgoraQuickStartDlg::OnEIDRtcStats(WPARAM wParam, LPARAM lParam) {
+  // Extract RTC statistics from message parameters
+  int txBitrate = LOWORD(wParam);     // TX bitrate in kbps
+  int rxBitrate = HIWORD(wParam);     // RX bitrate in kbps
+  int rtt = LOWORD(lParam);           // Round trip time in ms
+  int txPacketLoss = HIWORD(lParam);  // TX packet loss rate (scaled by 100)
+
+  // Update UI or store statistics as needed
+  CString statsText;
+  statsText.Format(_T("Stats: TX %d kbps, RX %d kbps, RTT %dms, Loss %.1f%%"),
+                   txBitrate, rxBitrate, rtt, txPacketLoss / 100.0f);
+
+  // You can update a status bar or label here
+  // For now, just output to debug console
+  OutputDebugString(statsText + _T("\n"));
+
+  return 0;
+}
+
+LRESULT CAgoraQuickStartDlg::OnEIDLocalVideoStats(WPARAM wParam,
+                                                  LPARAM lParam) {
+  // Extract local video statistics from message parameters
+  int sentBitrate = LOWORD(wParam);    // Sent bitrate in kbps
+  int sentFrameRate = HIWORD(wParam);  // Sent frame rate
+  int encodedWidth = LOWORD(lParam);   // Encoded frame width
+  int encodedHeight = HIWORD(lParam);  // Encoded frame height
+
+  // Update UI or store video statistics as needed
+  CString videoStatsText;
+  videoStatsText.Format(_T("Video: %dx%d@%dfps, %d kbps"), encodedWidth,
+                        encodedHeight, sentFrameRate, sentBitrate);
+
+  // You can update a video stats display here
+  // For now, just output to debug console
+  OutputDebugString(videoStatsText + _T("\n"));
 
   return 0;
 }
