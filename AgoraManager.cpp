@@ -12,7 +12,7 @@ AgoraManager::AgoraManager()
       m_initialize(false),
       m_remoteRender(false),
       m_videoTrackId(-1),
-      m_pushFPS(FRAME_RATE_FPS_10),
+      m_pushFPS(FRAME_RATE_FPS_7),
       m_videoWidth(640),  // Default resolution
       m_videoHeight(360),
       m_currentNetworkQuality(1),  // Assume good quality initially
@@ -385,7 +385,7 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
         break;
       case 1:  // Medium quality
         setVideoResolution(640, 360);
-        setPushFPS(FRAME_RATE_FPS_10);
+        setPushFPS(FRAME_RATE_FPS_7);
         m_currentNetworkQuality = QUALITY_POOR;
         break;
       case 0:  // Low quality (default)
