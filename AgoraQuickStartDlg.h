@@ -52,4 +52,10 @@ class CAgoraQuickStartDlg : public CDialog {
  private:
   // Agora manager to handle all RTC operations
   AgoraManager m_agoraManager;
+
+  // CSV logging for statistics
+  CString m_csvFilePath;
+  void InitializeCSVFile();
+  void WriteStatsToCSV(int sentBitrate, int sentFrameRate, int encodedWidth,
+                       int encodedHeight);
 };

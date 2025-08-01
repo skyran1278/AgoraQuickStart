@@ -1,4 +1,3 @@
-
 // AgoraQuickStartDlg.cpp : implementation file
 //
 
@@ -118,6 +117,9 @@ BOOL CAgoraQuickStartDlg::OnInitDialog() {
   if (!m_agoraManager.initialize(m_hWnd)) {
     AfxMessageBox(_T("Failed to initialize Agora Manager"));
   }
+
+  // Initialize CSV file for statistics logging
+  InitializeCSVFile();
 
   return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -253,6 +255,9 @@ LRESULT CAgoraQuickStartDlg::OnEIDLocalVideoStats(WPARAM wParam,
   // For now, just output to debug console
   OutputDebugString(videoStatsText + _T("\n"));
 
+  // Write statistics to CSV file
+  WriteStatsToCSV(sentBitrate, sentFrameRate, encodedWidth, encodedHeight);
+
   return 0;
 }
 
@@ -271,4 +276,59 @@ void CAgoraQuickStartDlg::OnBnClickedBtnJoin() {
 
 void CAgoraQuickStartDlg::OnBnClickedBtnLeave() {
   m_agoraManager.leaveChannel();
+}
+
+void CAgoraQuickStartDlg::InitializeCSVFile() {
+  // Create CSV file with timestamp in filename
+  CTime currentTime = CTime::GetCurrentTime();
+  CString timestamp = currentTime.Format(_T("%Y%m%d_%H%M%S"));
+  m_csvFilePath.Format(_T("video_stats_%s.csv"), timestamp);
+
+  // Write CSV header
+  CStdioFile csvFile;
+  if (csvFile.Open(m_csvFilePath,
+                   CFile::modeCreate | CFile::modeWrite | CFile::typeText)) {
+    csvFile.WriteString(
+        _T("Timestamp,SentBitrate_kbps,SentFrameRate_fps,EncodedWidth,")
+        _T("EncodedHeight\n"));
+    csvFile.Close();
+
+    CString logMsg;
+    logMsg.Format(_T("CSV statistics file created: %s\n"), m_csvFilePath);
+    OutputDebugString(logMsg);
+  } else {
+    OutputDebugString(_T("Failed to create CSV statistics file\n"));
+  }
+}
+
+void CAgoraQuickStartDlg::WriteStatsToCSV(int sentBitrate, int sentFrameRate,
+                                          int encodedWidth, int encodedHeight) {
+  // Get current timestamp
+  CTime currentTime = CTime::GetCurrentTime();
+  CString timestamp = currentTime.Format(_T("%Y-%m-%d %H:%M:%S"));
+
+  // Format CSV line
+  CString csvLine;
+  csvLine.Format(_T("%s,%d,%d,%d,%d\n"), timestamp, sentBitrate, sentFrameRate,
+                 encodedWidth, encodedHeight);
+
+  // Append to CSV file
+  CStdioFile csvFile;
+  if (csvFile.Open(m_csvFilePath, CFile::modeWrite | CFile::typeText)) {
+    csvFile.SeekToEnd();
+    csvFile.WriteString(csvLine);
+    csvFile.Close();
+  } else {
+    // If file opening fails, try to recreate it
+    OutputDebugString(
+        _T("Failed to open CSV file for writing, attempting to recreate\n"));
+    InitializeCSVFile();
+
+    // Try again
+    if (csvFile.Open(m_csvFilePath, CFile::modeWrite | CFile::typeText)) {
+      csvFile.SeekToEnd();
+      csvFile.WriteString(csvLine);
+      csvFile.Close();
+    }
+  }
 }
