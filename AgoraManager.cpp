@@ -390,7 +390,7 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
         break;
       case 0:  // Low quality (default)
       default:
-        setVideoResolution(320, 180);
+        setVideoResolution(64, 64);
         setPushFPS(FRAME_RATE_FPS_1);
         m_currentNetworkQuality = QUALITY_VBAD;
         break;
@@ -407,6 +407,81 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
         targetTier, m_currentNetworkQuality, m_videoWidth, m_videoHeight,
         m_pushFPS);
     OutputDebugString(logMsg);
+  }
+}
+
+void AgoraManager::adjustVideoQualityBasedOnNetwork(int txBitrate,
+                                                    int rxBitrate, int rtt,
+                                                    int txPacketLoss) {
+  // Use minimum of TX and RX bitrate as the primary quality indicator
+  static int lastQualityTier = -1;
+  static int stabilityCounter = 0;
+  const int STABILITY_THRESHOLD =
+      3;  // Require 3 consistent readings before changing
+
+  // Calculate the bottleneck bitrate (minimum of TX and RX)
+  int minBitrate = std::min(txBitrate, rxBitrate);
+
+  // Determine quality tier based on minimum bitrate
+  int targetQualityTier;
+  if (minBitrate >= 2000) {
+    targetQualityTier = 2;  // High quality: >= 800 kbps
+  } else if (minBitrate >= 600) {
+    targetQualityTier = 1;  // Medium quality: 300-799 kbps
+  } else {
+    targetQualityTier = 0;  // Low quality: < 300 kbps
+  }
+
+  // Apply penalty for high packet loss or latency
+  double packetLossPercent = txPacketLoss / 100.0;
+  if (packetLossPercent > 3.0 || rtt > 200) {
+    // Downgrade quality tier if packet loss > 3% or RTT > 200ms
+    targetQualityTier = std::max(0, targetQualityTier - 1);
+  }
+
+  // Check for stability
+  if (lastQualityTier == targetQualityTier) {
+    stabilityCounter++;
+  } else {
+    lastQualityTier = targetQualityTier;
+    stabilityCounter = 1;
+  }
+
+  // Only adjust if quality has been stable for required readings
+  if (stabilityCounter >= STABILITY_THRESHOLD) {
+    switch (targetQualityTier) {
+      case 2:  // High quality
+        setVideoResolution(1280, 720);
+        setPushFPS(FRAME_RATE_FPS_15);
+        m_currentNetworkQuality = QUALITY_GOOD;
+        break;
+      case 1:  // Medium quality
+        setVideoResolution(640, 360);
+        setPushFPS(FRAME_RATE_FPS_7);
+        m_currentNetworkQuality = QUALITY_POOR;
+        break;
+      case 0:  // Low quality (default)
+      default:
+        setVideoResolution(64, 64);
+        setPushFPS(FRAME_RATE_FPS_1);
+        m_currentNetworkQuality = QUALITY_VBAD;
+        break;
+    }
+
+    updateVideoEncoderConfiguration();
+
+    // Log the quality adjustment with RTC stats details
+    CString logMsg;
+    logMsg.Format(
+        _T("RTC Stats Quality Adjustment - Min Bitrate: %d kbps, Tier: %d, ")
+        _T("TX: %d kbps, RX: %d kbps, RTT: %dms, Loss: %.1f%%, ")
+        _T("Settings: %dx%d@%dfps\n"),
+        minBitrate, targetQualityTier, txBitrate, rxBitrate, rtt,
+        packetLossPercent, m_videoWidth, m_videoHeight, m_pushFPS);
+    OutputDebugString(logMsg);
+
+    // Reset counter after adjustment
+    stabilityCounter = 0;
   }
 }
 

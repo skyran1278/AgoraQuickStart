@@ -16,9 +16,9 @@
 #endif
 
 #define TOKEN                                                                  \
-  "007eJxTYKjh0H/"                                                             \
-  "yoPzxOlbFrxwHfLkWc5xobeqMaZpuJP39zdHSLhYFBnPDxEQTczPjNGNTQxNLYzNLS1PLFAvLx" \
-  "LRUo1RTA5Pkj1I9GQ2BjAwpn1WZGBkgEMRnYShILM1hYAAACpEejA=="
+  "007eJxTYKjxW9PyICpGSH9jXM0ElZnzri6VnLTnX876208/"                            \
+  "Z2UUB2xSYDA3TEw0MTczTjM2NTSxNDaztDS1TLGwTExLNUo1NTBJTl06MaMhkJFB2esZIyMDBI" \
+  "L4LAwFiaU5DAwAoN4geA=="
 
 // CAboutDlg dialog used for App About
 
@@ -234,6 +234,10 @@ LRESULT CAgoraQuickStartDlg::OnEIDRtcStats(WPARAM wParam, LPARAM lParam) {
   // You can update a status bar or label here
   // For now, just output to debug console
   OutputDebugString(statsText + _T("\n"));
+
+  // Adjust video quality based on comprehensive RTC statistics
+  // m_agoraManager.adjustVideoQualityBasedOnNetwork(txBitrate, rxBitrate, rtt,
+  //                                                 txPacketLoss);
 
   return 0;
 }

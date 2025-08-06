@@ -41,6 +41,8 @@ class AgoraManager {
 
   // Video quality management based on network conditions
   void adjustVideoQualityBasedOnNetwork(int networkQuality);
+  void adjustVideoQualityBasedOnNetwork(int txBitrate, int rxBitrate, int rtt,
+                                        int txPacketLoss);
   void setVideoResolution(int width, int height);
   void updateVideoEncoderConfiguration();
   void getCurrentVideoSettings(int& width, int& height, int& fps) const;
