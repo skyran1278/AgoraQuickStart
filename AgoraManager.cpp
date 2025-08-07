@@ -419,17 +419,14 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int txBitrate,
   const int STABILITY_THRESHOLD =
       3;  // Require 3 consistent readings before changing
 
-  // Calculate the bottleneck bitrate (minimum of TX and RX)
-  int minBitrate = std::min(txBitrate, rxBitrate);
-
   // Determine quality tier based on minimum bitrate
   int targetQualityTier;
-  if (minBitrate >= 2000) {
-    targetQualityTier = 2;  // High quality: >= 800 kbps
-  } else if (minBitrate >= 600) {
-    targetQualityTier = 1;  // Medium quality: 300-799 kbps
+  if (txBitrate >= 100) {
+    targetQualityTier = 2;
+  } else if (txBitrate >= 60) {
+    targetQualityTier = 1;
   } else {
-    targetQualityTier = 0;  // Low quality: < 300 kbps
+    targetQualityTier = 0;
   }
 
   // Apply penalty for high packet loss or latency
@@ -473,10 +470,10 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int txBitrate,
     // Log the quality adjustment with RTC stats details
     CString logMsg;
     logMsg.Format(
-        _T("RTC Stats Quality Adjustment - Min Bitrate: %d kbps, Tier: %d, ")
+        _T("RTC Stats Quality Adjustment - TX Bitrate: %d kbps, Tier: %d, ")
         _T("TX: %d kbps, RX: %d kbps, RTT: %dms, Loss: %.1f%%, ")
         _T("Settings: %dx%d@%dfps\n"),
-        minBitrate, targetQualityTier, txBitrate, rxBitrate, rtt,
+        txBitrate, targetQualityTier, txBitrate, rxBitrate, rtt,
         packetLossPercent, m_videoWidth, m_videoHeight, m_pushFPS);
     OutputDebugString(logMsg);
 
@@ -503,17 +500,16 @@ void AgoraManager::updateVideoEncoderConfiguration() {
   videoConfig.dimensions.height = m_videoHeight;
 
   videoConfig.frameRate = m_pushFPS;
+  videoConfig.orientationMode = ORIENTATION_MODE_FIXED_LANDSCAPE;
 
   // Set encoding preferences based on network quality
   if (m_currentNetworkQuality <= QUALITY_GOOD) {
     // Good network - prioritize quality
-    videoConfig.orientationMode = ORIENTATION_MODE_ADAPTIVE;
-    videoConfig.degradationPreference = MAINTAIN_QUALITY;
+    // videoConfig.degradationPreference = MAINTAIN_QUALITY;
     videoConfig.bitrate = STANDARD_BITRATE;
   } else {
     // Poor network - prioritize framerate
-    videoConfig.orientationMode = ORIENTATION_MODE_FIXED_LANDSCAPE;
-    videoConfig.degradationPreference = MAINTAIN_FRAMERATE;
+    // videoConfig.degradationPreference = MAINTAIN_FRAMERATE;
     videoConfig.bitrate = COMPATIBLE_BITRATE;
   }
 
