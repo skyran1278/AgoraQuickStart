@@ -333,80 +333,105 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
 }
 
 void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
-  // Only adjust if network quality is consistently stable to avoid frequent
-  // switching
+  // Track prior settings for intelligent downgrading
   static int lastStableQuality = -1;
-  static int currentQualityTier = -1;
   static int stabilityCounter = 0;
-  const int DOWNGRADE_THRESHOLD = 2;  // Quick to downgrade (2 readings)
-  const int UPGRADE_THRESHOLD = 5;    // Slow to upgrade (5 readings)
+  static int priorWidth = -1;
+  static int priorHeight = -1;
+  static FRAME_RATE priorFPS = FRAME_RATE_FPS_7;
+  const int STABILITY_THRESHOLD = 3;  // Require 3 consistent readings
 
-  // Determine target quality tier with hysteresis (easier to go down than up)
-  int targetTier;
-  if (networkQuality >= QUALITY_EXCELLENT && networkQuality <= QUALITY_GOOD) {
-    targetTier = 2;  // High quality tier
-  } else if (networkQuality == QUALITY_POOR) {
-    targetTier = 1;  // Medium quality tier
-  } else {
-    targetTier = 0;  // Low quality tier (default to lowest)
+  // Initialize prior settings on first call
+  if (priorWidth == -1) {
+    priorWidth = m_videoWidth;
+    priorHeight = m_videoHeight;
+    priorFPS = m_pushFPS;
   }
 
-  // Check if quality tier is consistent
-  if (currentQualityTier == targetTier) {
-    stabilityCounter++;
-  } else {
-    // Quality tier changed, reset counter
-    currentQualityTier = targetTier;
-    stabilityCounter = 1;
-  }
+  // Helper function to get current tier (1=high, 2=medium, 3=low)
+  auto getCurrentTier = [&]() -> int {
+    if (m_videoWidth >= 1280 && m_videoHeight >= 720) return 1;
+    if (m_videoWidth >= 640 && m_videoHeight >= 360) return 2;
+    return 3;
+  };
 
-  // Determine required threshold based on upgrade/downgrade direction
-  int requiredThreshold;
-  if (lastStableQuality == -1) {
-    requiredThreshold =
-        DOWNGRADE_THRESHOLD;  // First time, use downgrade threshold
-  } else if (targetTier < lastStableQuality) {
-    requiredThreshold = DOWNGRADE_THRESHOLD;  // Downgrading (easier)
-  } else {
-    requiredThreshold = UPGRADE_THRESHOLD;  // Upgrading (harder)
-  }
-
-  // Only make changes if quality has been stable for required readings
-  // and it's different from current applied quality
-  if (stabilityCounter >= requiredThreshold &&
-      lastStableQuality != targetTier) {
-    lastStableQuality = targetTier;
-
-    switch (targetTier) {
-      case 2:  // High quality
+  // Helper function to set tier
+  auto setTier = [&](int tier) {
+    switch (tier) {
+      case 1:  // High quality
         setVideoResolution(1280, 720);
         setPushFPS(FRAME_RATE_FPS_15);
         m_currentNetworkQuality = QUALITY_GOOD;
         break;
-      case 1:  // Medium quality
+      case 2:  // Medium quality
         setVideoResolution(640, 360);
         setPushFPS(FRAME_RATE_FPS_7);
         m_currentNetworkQuality = QUALITY_POOR;
         break;
-      case 0:  // Low quality (default)
+      case 3:  // Low quality
       default:
         setVideoResolution(64, 64);
         setPushFPS(FRAME_RATE_FPS_1);
         m_currentNetworkQuality = QUALITY_VBAD;
         break;
     }
+  };
 
-    updateVideoEncoderConfiguration();
+  // Determine action based on network quality
+  int targetAction = 0;  // 0=maintain, 1=upgrade, -1=downgrade
 
-    // Log the quality adjustment
-    CString logMsg;
-    logMsg.Format(
-        _T("Network quality tier STABILIZED and changed to tier %d (quality ")
-        _T("%d), settings: ")
-        _T("%dx%d@%dfps\n"),
-        targetTier, m_currentNetworkQuality, m_videoWidth, m_videoHeight,
-        m_pushFPS);
-    OutputDebugString(logMsg);
+  if (networkQuality == QUALITY_EXCELLENT) {
+    targetAction = 1;  // Upgrade
+  } else if (networkQuality < QUALITY_POOR) {
+    targetAction = -1;  // Downgrade
+  } else {
+    targetAction = 0;  // Maintain current settings
+  }
+
+  // Check for stability
+  if (lastStableQuality == targetAction) {
+    stabilityCounter++;
+  } else {
+    lastStableQuality = targetAction;
+    stabilityCounter = 1;
+  }
+
+  // Only make changes if action has been stable for required readings
+  if (stabilityCounter >= STABILITY_THRESHOLD) {
+    // Store current as prior before any changes
+    priorWidth = m_videoWidth;
+    priorHeight = m_videoHeight;
+    priorFPS = m_pushFPS;
+
+    int currentTier = getCurrentTier();
+    int newTier = currentTier;
+
+    if (targetAction == 1) {
+      // UPGRADE: Move to higher tier (lower number)
+      newTier = std::max(1, currentTier - 1);
+    } else if (targetAction == -1) {
+      // DOWNGRADE: Move to lower tier (higher number)
+      newTier = std::min(3, currentTier + 1);
+    }
+
+    // Apply the new tier if it changed
+    if (newTier != currentTier) {
+      setTier(newTier);
+      updateVideoEncoderConfiguration();
+
+      const char* action = (targetAction == 1) ? "UPGRADED" : "DOWNGRADED";
+      const char* reason = (targetAction == 1) ? "EXCELLENT" : "POOR";
+
+      CString logMsg;
+      logMsg.Format(
+          _T("Network %s - %s from %dx%d@%dfps to %dx%d@%dfps (Tier %d->%d)\n"),
+          CString(reason), CString(action), priorWidth, priorHeight, priorFPS,
+          m_videoWidth, m_videoHeight, m_pushFPS, currentTier, newTier);
+      OutputDebugString(logMsg);
+    }
+
+    // Reset counter after taking action or deciding to maintain
+    stabilityCounter = 0;
   }
 }
 
