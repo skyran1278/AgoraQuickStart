@@ -1,4 +1,3 @@
-
 // AgoraQuickStartDlg.h : header file
 //
 
@@ -58,4 +57,5 @@ class CAgoraQuickStartDlg : public CDialog {
   void InitializeCSVFile();
   void WriteStatsToCSV(int sentBitrate, int sentFrameRate, int encodedWidth,
                        int encodedHeight);
+  int m_lastNetworkQuality = -1;  // last observed network quality
 };

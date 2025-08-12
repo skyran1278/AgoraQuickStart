@@ -339,7 +339,7 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
   static int priorWidth = -1;
   static int priorHeight = -1;
   static FRAME_RATE priorFPS = FRAME_RATE_FPS_7;
-  const int STABILITY_THRESHOLD = 3;  // Require 3 consistent readings
+  const int STABILITY_THRESHOLD = 5;
 
   // Initialize prior settings on first call
   if (priorWidth == -1) {
@@ -382,7 +382,7 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
 
   if (networkQuality == QUALITY_EXCELLENT) {
     targetAction = 1;  // Upgrade
-  } else if (networkQuality < QUALITY_POOR) {
+  } else if (networkQuality >= QUALITY_POOR) {
     targetAction = -1;  // Downgrade
   } else {
     targetAction = 0;  // Maintain current settings
@@ -395,6 +395,14 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
     lastStableQuality = targetAction;
     stabilityCounter = 1;
   }
+
+  CString logMsg;
+  logMsg.Format(
+      lastStableQuality == targetAction
+          ? _T("Network quality stable: %d, action: %d, counter: %d\n")
+          : _T("Network quality changed: %d, action: %d, counter reset\n"),
+      networkQuality, targetAction, stabilityCounter);
+  OutputDebugString(logMsg);
 
   // Only make changes if action has been stable for required readings
   if (stabilityCounter >= STABILITY_THRESHOLD) {

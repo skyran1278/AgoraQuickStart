@@ -15,10 +15,10 @@
 #define new DEBUG_NEW
 #endif
 
-#define TOKEN                                                                  \
-  "007eJxTYKjxW9PyICpGSH9jXM0ElZnzri6VnLTnX876208/"                            \
-  "Z2UUB2xSYDA3TEw0MTczTjM2NTSxNDaztDS1TLGwTExLNUo1NTBJTl06MaMhkJFB2esZIyMDBI" \
-  "L4LAwFiaU5DAwAoN4geA=="
+#define TOKEN                                                           \
+  "007eJxTYFj/5LXXapFJyTcS+S9+ks6tj7CO/"                                \
+  "LC1dM80OdZVk+svfvmiwGBumJhoYm5mnGZsamhiaWxmaWlqmWJhmZiWapRqamCSHDt/" \
+  "VkZDICNDomMiAyMUgvgsDAWJpTkMDAC7iyBl"
 
 // CAboutDlg dialog used for App About
 
@@ -206,7 +206,9 @@ LRESULT CAgoraQuickStartDlg::OnEIDNetworkQuality(WPARAM wParam, LPARAM lParam) {
   if (uid == 0) {
     // Use the worse of rx and tx quality for adjustment
     int worstQuality = std::max(rxQuality, txQuality);
-    m_agoraManager.adjustVideoQualityBasedOnNetwork(worstQuality);
+    // m_agoraManager.adjustVideoQualityBasedOnNetwork(worstQuality);
+    // Record current worst quality for next stats row
+    m_lastNetworkQuality = worstQuality;
 
     // Optional: Display quality info in debug output
     CString debugMsg;
@@ -294,7 +296,7 @@ void CAgoraQuickStartDlg::InitializeCSVFile() {
                    CFile::modeCreate | CFile::modeWrite | CFile::typeText)) {
     csvFile.WriteString(
         _T("Timestamp,SentBitrate_kbps,SentFrameRate_fps,EncodedWidth,")
-        _T("EncodedHeight\n"));
+        _T("EncodedHeight,NetworkQuality\n"));
     csvFile.Close();
 
     CString logMsg;
@@ -313,8 +315,9 @@ void CAgoraQuickStartDlg::WriteStatsToCSV(int sentBitrate, int sentFrameRate,
 
   // Format CSV line
   CString csvLine;
-  csvLine.Format(_T("%s,%d,%d,%d,%d\n"), timestamp, sentBitrate, sentFrameRate,
-                 encodedWidth, encodedHeight);
+  csvLine.Format(_T("%s,%d,%d,%d,%d,%d\n"), timestamp, sentBitrate,
+                 sentFrameRate, encodedWidth, encodedHeight,
+                 m_lastNetworkQuality);
 
   // Append to CSV file
   CStdioFile csvFile;
