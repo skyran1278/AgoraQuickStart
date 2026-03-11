@@ -65,7 +65,6 @@ class AgoraManager {
   // State variables
   bool m_initialize;
   bool m_remoteRender;
-  int m_videoTrackId;
   FRAME_RATE m_pushFPS;  // Configurable push FPS
 
   // Video quality settings

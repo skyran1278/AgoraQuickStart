@@ -15,10 +15,10 @@
 #define new DEBUG_NEW
 #endif
 
-#define TOKEN                                                           \
-  "007eJxTYFj/5LXXapFJyTcS+S9+ks6tj7CO/"                                \
-  "LC1dM80OdZVk+svfvmiwGBumJhoYm5mnGZsamhiaWxmaWlqmWJhmZiWapRqamCSHDt/" \
-  "VkZDICNDomMiAyMUgvgsDAWJpTkMDAC7iyBl"
+#define TOKEN                                                                  \
+  "007eJxTYLBKOmKb/qtyQfIdLR2Nla8f8V/"                                         \
+  "boKr4grt9wnynz0w5rboKDKaGSYYpyUlJpgYGxiZGxkmWFpYmZgZJhgaGJgZAOYstMhszGwIZG" \
+  "UyezWBiZIBAEJ+FoSCxNIeBAQAL0x5D"
 
 // CAboutDlg dialog used for App About
 

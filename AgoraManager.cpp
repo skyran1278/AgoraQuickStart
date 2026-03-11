@@ -5,13 +5,12 @@
 #include "AgoraManager.h"
 
 // Insert your project's App ID obtained from the Agora Console
-#define APP_ID "71aa4763f35149369959d89afe2e504c"
+#define APP_ID "51b1dcbb5003423b989460b1014051b8"
 
 AgoraManager::AgoraManager()
     : m_rtcEngine(nullptr),
       m_initialize(false),
       m_remoteRender(false),
-      m_videoTrackId(-1),
       m_pushFPS(FRAME_RATE_FPS_7),
       m_videoWidth(640),
       m_videoHeight(360),
@@ -55,14 +54,11 @@ bool AgoraManager::initialize(HWND hWnd) {
     // Enable the video module
     m_rtcEngine->enableVideo();
 
-    // For creating multiple custom video tracks, call createCustomVideoTrack
-    // multiple times
-    m_videoTrackId = m_rtcEngine->createCustomVideoTrack();
     m_mediaEngine.queryInterface(m_rtcEngine,
                                  agora::rtc::AGORA_IID_MEDIA_ENGINE);
 
-    if (m_videoTrackId < 0 || !m_mediaEngine) {
-      AfxMessageBox(_T("Failed to create custom video track"));
+    if (!m_mediaEngine) {
+      AfxMessageBox(_T("Failed to get media engine"));
       return false;
     }
   } else {
@@ -79,13 +75,12 @@ void AgoraManager::release() {
 
   if (m_rtcEngine) {
     // Release resources
-    m_rtcEngine->release(true);
+    m_rtcEngine->release(nullptr);
     m_rtcEngine = nullptr;
   }
 
   m_initialize = false;
   m_remoteRender = false;
-  m_videoTrackId = -1;
 }
 
 bool AgoraManager::joinChannel(const char* token, const char* channelName) {
@@ -105,10 +100,9 @@ bool AgoraManager::joinChannel(const char* token, const char* channelName) {
   // Publish the camera track
   options.publishCameraTrack = false;
 
-  // Publish the self-captured video stream
+  // Publish the self-captured video stream (track ID 0, set via
+  // setExternalVideoSource)
   options.publishCustomVideoTrack = true;
-  // Set the custom video track ID
-  options.customVideoTrackId = m_videoTrackId;
 
   // Automatically subscribe to all audio streams
   options.autoSubscribeAudio = true;
@@ -138,7 +132,7 @@ void AgoraManager::leaveChannel() {
 
   if (m_rtcEngine) {
     // Stop local video preview
-    m_rtcEngine->stopPreview();
+    m_rtcEngine->stopPreview(VIDEO_SOURCE_CUSTOM);
     // Leave the channel
     m_rtcEngine->leaveChannel();
     // Clear local view
@@ -164,7 +158,7 @@ void AgoraManager::setupLocalVideo(HWND localViewHwnd) {
   canvas.view = localViewHwnd;
   m_rtcEngine->setupLocalVideo(canvas);
   // Preview the local video
-  m_rtcEngine->startPreview();
+  m_rtcEngine->startPreview(VIDEO_SOURCE_CUSTOM);
 }
 
 void AgoraManager::setupRemoteVideo(uid_t remoteUid, HWND remoteViewHwnd) {
@@ -303,7 +297,7 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
     cv::cvtColor(lowResFrame, yuvI420, cv::COLOR_BGR2YUV_I420);
 
     // Create ExternalVideoFrame and push to Agora
-    if (m_mediaEngine && m_videoTrackId >= 0) {
+    if (m_mediaEngine) {
       ExternalVideoFrame frame;
       frame.type = ExternalVideoFrame::VIDEO_BUFFER_TYPE::VIDEO_BUFFER_RAW_DATA;
       frame.format = VIDEO_PIXEL_I420;
@@ -315,7 +309,9 @@ void AgoraManager::processFrame(const cv::Mat& highResFrame) {
                             std::chrono::steady_clock::now().time_since_epoch())
                             .count();
 
-      int result = m_mediaEngine->pushVideoFrame(&frame, m_videoTrackId);
+      // Use track ID 0 (the default external video source set via
+      // setExternalVideoSource)
+      int result = m_mediaEngine->pushVideoFrame(&frame, 0);
       if (result != 0) {
         OutputDebugStringA("Failed to push video frame to Agora\n");
       }
@@ -398,9 +394,9 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int networkQuality) {
       CString changeMsg;
       changeMsg.Format(
           _T("Network %s from %dx%d@%dfps to %dx%d@%dfps (Tier %d->%d)\n"),
-          targetAction == 1 ? _T("UPGRADED") : _T("DOWNGRADED"),
-          m_priorWidth, m_priorHeight, m_priorFPS,
-          m_videoWidth, m_videoHeight, m_pushFPS, currentTier, newTier);
+          targetAction == 1 ? _T("UPGRADED") : _T("DOWNGRADED"), m_priorWidth,
+          m_priorHeight, m_priorFPS, m_videoWidth, m_videoHeight, m_pushFPS,
+          currentTier, newTier);
       OutputDebugString(changeMsg);
     }
 
@@ -445,8 +441,8 @@ void AgoraManager::adjustVideoQualityBasedOnNetwork(int txBitrate,
         _T("RTC Stats Quality Adjustment - Tier: %d, ")
         _T("TX: %d kbps, RX: %d kbps, RTT: %dms, Loss: %.1f%%, ")
         _T("Settings: %dx%d@%dfps\n"),
-        targetQualityTier, txBitrate, rxBitrate, rtt,
-        packetLossPercent, m_videoWidth, m_videoHeight, m_pushFPS);
+        targetQualityTier, txBitrate, rxBitrate, rtt, packetLossPercent,
+        m_videoWidth, m_videoHeight, m_pushFPS);
     OutputDebugString(logMsg);
 
     m_rtcStabilityCounter = 0;
