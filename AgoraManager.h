@@ -18,6 +18,11 @@ class AgoraManager {
   AgoraManager();
   ~AgoraManager();
 
+  AgoraManager(const AgoraManager&) = delete;
+  AgoraManager& operator=(const AgoraManager&) = delete;
+  AgoraManager(AgoraManager&&) = delete;
+  AgoraManager& operator=(AgoraManager&&) = delete;
+
   // Core initialization and cleanup
   bool initialize(HWND hWnd);
   void release();
@@ -75,7 +80,19 @@ class AgoraManager {
   std::atomic<bool> m_stopCapture;
   std::mutex m_frameMutex;
 
+  // Stability tracking for adjustVideoQualityBasedOnNetwork(int networkQuality)
+  int m_lastStableAction;       // -2=uninit, -1=downgrade, 0=maintain, 1=upgrade
+  int m_networkStabilityCounter;
+  int m_priorWidth;
+  int m_priorHeight;
+  FRAME_RATE m_priorFPS;
+
+  // Stability tracking for adjustVideoQualityBasedOnNetwork(int,int,int,int)
+  int m_lastRtcQualityTier;
+  int m_rtcStabilityCounter;
+
   // Private methods
+  void applyQualityTier(int tier);
   void videoCaptureLoop();
   void processFrame(const cv::Mat& highResFrame);
 };
