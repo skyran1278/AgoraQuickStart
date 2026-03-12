@@ -206,7 +206,7 @@ LRESULT CAgoraQuickStartDlg::OnEIDNetworkQuality(WPARAM wParam, LPARAM lParam) {
   if (uid == 0) {
     // Use the worse of rx and tx quality for adjustment
     int worstQuality = std::max(rxQuality, txQuality);
-    // m_agoraManager.adjustVideoQualityBasedOnNetwork(worstQuality);
+    m_agoraManager.adjustVideoQualityBasedOnNetwork(worstQuality);
     // Record current worst quality for next stats row
     m_lastNetworkQuality = worstQuality;
 
